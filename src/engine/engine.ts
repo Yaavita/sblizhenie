@@ -4,6 +4,8 @@ import { getHostRules } from "../content/hostRules";
 import { selectBonusQuestion } from "../content/auction";
 import { auctionReducer, startRound, isAuctionState } from "./auction";
 import type { AuctionAction, AuctionState } from "./auction";
+import { initialMuseum, isMuseumState, museumReducer } from "./museum";
+import type { MuseumAction, MuseumState } from "./museum";
 
 export interface Condition {
   id: string;
@@ -77,6 +79,7 @@ export interface Session {
   auctionHistory: AuctionResult[];
   log: LogEntry[];
   conditions: Condition[];
+  museum?: MuseumState;
 }
 export type Action =
   | { type: "TICK"; delta: number }
@@ -86,6 +89,7 @@ export type Action =
   | { type: "FINISH" }
   | { type: "CHOOSE"; stageId: string; choiceId: string }
   | { type: "AUCTION"; action: AuctionAction }
+  | { type: "MUSEUM"; action: MuseumAction }
   | { type: "INTERRUPT"; event: Interruption }
   | { type: "END_INTERRUPTION" }
   | { type: "CANCEL_ALL_INTERRUPTION" };
@@ -102,7 +106,7 @@ const narrators: NarratorId[] = [
   "chance",
   "noir",
 ];
-const gameIds: GameId[] = ["universes", "cult", "auction", "secrets"];
+const gameIds: GameId[] = ["universes", "cult", "auction", "secrets", "museum"];
 const duration = (value: number) =>
   Number.isFinite(value) ? Math.max(0, value) : 0;
 function hostConditions(
@@ -173,6 +177,7 @@ export function initialSession(
     balances: [100, 100],
     auction,
     auctionHistory: [],
+    ...(game === "museum" ? { museum: initialMuseum() } : {}),
     log: [{ id: 1, type: "stage", text: firstStage.title }],
     conditions: hostConditions(
       dealer,
@@ -325,6 +330,7 @@ export function canInterrupt(state: Session, priority?: number): boolean {
     state.finished ||
     state.paused ||
     state.game === "auction" ||
+    state.game === "museum" ||
     state.stageKind === "secret" ||
     state.remaining <= 0 ||
     state.totalInterruptions >= INTERRUPTION_LIMITS.total ||
@@ -373,6 +379,10 @@ function endInterruption(state: Session): Session {
 export function reducer(state: Session, action: Action): Session {
   if (state.finished) return state;
   switch (action.type) {
+    case "MUSEUM":
+      if (state.game !== "museum" || !state.museum || state.paused)
+        return state;
+      return { ...state, museum: museumReducer(state.museum, action.action) };
     case "TICK": {
       if (state.paused || !Number.isFinite(action.delta) || action.delta <= 0)
         return state;
@@ -632,6 +642,7 @@ export function restoreSession(value: unknown): Session | null {
         "secret",
         "auction",
         "verdict",
+        "museum",
       ].includes(s.stageKind)) ||
     (s.currentLotId !== null && typeof s.currentLotId !== "string") ||
     (s.currentLotTitle !== undefined &&
@@ -671,6 +682,20 @@ export function restoreSession(value: unknown): Session | null {
       (!Array.isArray(s.conditions) ||
         !s.conditions.every(isCondition) ||
         new Set(s.conditions.map((c) => c.id)).size !== s.conditions.length))
+  )
+    return null;
+  if (
+    s.game === "museum" &&
+    (!isMuseumState(s.museum) ||
+      s.stageKind !== "museum" ||
+      s.stageId !== "m-exhibition" ||
+      s.stageIndex !== 0 ||
+      s.stack.length !== 0)
+  )
+    return null;
+  if (
+    s.game !== "museum" &&
+    (s.museum !== undefined || s.stageKind === "museum")
   )
     return null;
   if (s.game === "auction" && s.auction === undefined) return null;

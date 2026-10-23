@@ -1,4 +1,4 @@
-export type GameId = "universes" | "cult" | "auction" | "secrets";
+export type GameId = "universes" | "cult" | "auction" | "secrets" | "museum";
 export type NarratorId = "noise" | "momo" | "archivist" | "chance" | "noir";
 export type PreferenceId =
   "talk" | "debate" | "absurd" | "create" | "romance" | "mystery" | "random";
@@ -20,7 +20,14 @@ export interface Stage {
   seconds: number;
   prompt?: string;
   target?: "both" | "one" | "two";
-  kind?: "discussion" | "draw" | "choice" | "secret" | "auction" | "verdict";
+  kind?:
+    | "discussion"
+    | "draw"
+    | "choice"
+    | "secret"
+    | "auction"
+    | "verdict"
+    | "museum";
   choices?: { id: string; label: string; effect: string }[];
   secret?: { one: string; two: string };
   lot?: {

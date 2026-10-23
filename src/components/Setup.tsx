@@ -215,22 +215,26 @@ export function Setup({
           <div className="orbit orbit-a" />
           <div className="orbit orbit-b" />
           <span>
-            {game === "universes"
-              ? "∞"
-              : game === "cult"
-                ? "✳"
-                : game === "auction"
-                  ? "100"
-                  : "?"}
+            {game === "museum"
+              ? "◈"
+              : game === "universes"
+                ? "∞"
+                : game === "cult"
+                  ? "✳"
+                  : game === "auction"
+                    ? "100"
+                    : "?"}
           </span>
           <div className="art-caption">
-            {game === "universes"
-              ? "Два мира. Одна точка встречи."
-              : game === "cult"
-                ? "Вначале было ваше слово."
-                : game === "auction"
-                  ? "У всего ли есть цена?"
-                  : "Правда между строк."}
+            {game === "museum"
+              ? "За каждым впечатлением — история."
+              : game === "universes"
+                ? "Два мира. Одна точка встречи."
+                : game === "cult"
+                  ? "Вначале было ваше слово."
+                  : game === "auction"
+                    ? "У всего ли есть цена?"
+                    : "Правда между строк."}
           </div>
         </div>
         <div>
@@ -264,9 +268,25 @@ export function Setup({
             ↻ Предложить другую игру
           </button>
           <p className="cast-promise">
-            Рассказчики появятся сами. Кто первым заберёт слово — пока не знает
-            никто.
+            {game === "museum"
+              ? "Ведущий откроет музей. Все шесть историй и подписи к ним — ваши."
+              : "Рассказчики появятся сами. Кто первым заберёт слово — пока не знает никто."}
           </p>
+        </div>
+      </div>
+      <div className="game-picker" role="group" aria-label="Выбрать игру">
+        <span className="small-label">Или выберите сами</span>
+        <div>
+          {games.map((option) => (
+            <button
+              key={option.id}
+              className={game === option.id ? "active" : ""}
+              aria-pressed={game === option.id}
+              onClick={() => setGame(option.id)}
+            >
+              {option.title}
+            </button>
+          ))}
         </div>
       </div>
     </main>

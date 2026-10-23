@@ -2,8 +2,19 @@ import { applyIntimacy, intimacyLevel } from "./intimacy";
 import type { GameId, GameMeta, NarratorId, Stage } from "./types";
 import { applyHostStages } from "./hostRules";
 import { storyLots, selectStoryLots } from "./auction";
+import { museumStage } from "./museum";
 
 export const games: GameMeta[] = [
+  {
+    id: "museum",
+    title: "Музей неверных впечатлений",
+    subtitle: "Первое впечатление — ещё не вся история.",
+    description:
+      "Каким вас видят — и что остаётся за кадром? Выберите чужое впечатление, услышьте историю за ним и откройте выставку из шести новых подписей.",
+    minutes: "20–30",
+    materials: ["Любопытство к человеку напротив"],
+    tags: ["talk", "create", "romance"],
+  },
   {
     id: "universes",
     title: "Параллельные вселенные",
@@ -688,6 +699,7 @@ export function buildStages(
   decisions: Record<string, string> = {},
   narrator?: NarratorId,
 ): Stage[] {
+  if (game === "museum") return [{ ...museumStage }];
   const level = intimacyLevel(intimacy);
   const baseline =
     game === "universes"

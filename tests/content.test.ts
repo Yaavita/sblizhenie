@@ -6,7 +6,8 @@ import type { NarratorId } from "../src/content/types";
 
 describe("playable scripts", () => {
   it("provides complete sessions in the requested time range with unique stages and lots", () => {
-    for (const game of games)
+    // Museum uses its own interactive progression, covered in museum.test.ts.
+    for (const game of games.filter((g) => g.id !== "museum"))
       for (let variant = 0; variant < 28; variant++)
         for (const intimacy of [0, 1, 2]) {
           const stages = buildStages(game.id, variant, intimacy, {
@@ -189,7 +190,9 @@ describe("fixed main host rules", () => {
   const hosts: NarratorId[] = ["noise", "momo", "archivist", "chance", "noir"];
 
   it("changes actual assignments in at least four stages of every game for every host", () => {
-    for (const game of games.filter((g) => g.id !== "auction")) {
+    for (const game of games.filter(
+      (g) => g.id !== "auction" && g.id !== "museum",
+    )) {
       const base = buildStages(game.id, 3, 2, {});
       const untouched = JSON.stringify(base);
       const signatures = new Set<string>();

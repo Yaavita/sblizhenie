@@ -20,6 +20,7 @@ import { Portrait } from "./Portrait";
 import { PrivateReveal } from "./PrivateReveal";
 import { Auction } from "./Auction";
 import { Conditions } from "./Conditions";
+import { Museum } from "./Museum";
 export const clockText = (seconds: number) => {
   const rounded = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(rounded / 60)
@@ -183,7 +184,14 @@ function Summary({
     </main>
   );
 }
-export function Game({
+export function Game(props: Parameters<typeof ScriptedGame>[0]) {
+  return props.initial.game === "museum" ? (
+    <Museum {...props} />
+  ) : (
+    <ScriptedGame {...props} />
+  );
+}
+function ScriptedGame({
   initial,
   sound,
   onSound,
