@@ -13,6 +13,7 @@ import {
   isMuseumState,
   museumOwner,
   museumText,
+  museumTurn,
 } from "../src/engine/museum";
 import type { MuseumAction, MuseumState } from "../src/engine/museum";
 
@@ -42,6 +43,7 @@ function complete(s: MuseumState) {
   for (const action of [
     { type: "PICK", slot },
     { type: "STORY_DONE" },
+    { type: "QUESTION_DONE" },
     { type: "LABEL", text: `Новая подпись ${s.exhibits.length + 1}` },
     { type: "PROPOSE" },
     { type: "APPROVE" },
@@ -85,6 +87,10 @@ describe("museum of impressions", () => {
     s = museumReducer(s, { type: "PICK", slot: 2 });
     expect(museumReducer(s, { type: "APPROVE" })).toBe(s);
     s = museumReducer(s, { type: "STORY_DONE" });
+    expect(s.phase).toBe("question");
+    expect(museumTurn(s)?.active).toBe(1);
+    expect(museumReducer(s, { type: "LABEL", text: "Слишком рано" })).toBe(s);
+    s = museumReducer(s, { type: "QUESTION_DONE" });
     expect(museumReducer(s, { type: "PROPOSE" })).toBe(s);
     s = museumReducer(s, { type: "LABEL", text: "Предварительная подпись" });
     s = museumReducer(s, { type: "PROPOSE" });

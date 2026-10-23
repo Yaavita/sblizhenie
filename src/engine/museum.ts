@@ -6,6 +6,7 @@ export type MuseumPhase =
   | "write"
   | "pick"
   | "story"
+  | "question"
   | "label"
   | "approve"
   | "gallery";
@@ -32,6 +33,7 @@ export type MuseumAction =
   | { type: "SEAL" }
   | { type: "PICK"; slot: number }
   | { type: "STORY_DONE" }
+  | { type: "QUESTION_DONE" }
   | { type: "LABEL"; text: string }
   | { type: "PROPOSE" }
   | { type: "REVISE" }
@@ -120,7 +122,9 @@ export function museumReducer(
         ? { ...state, phase: "story", selected: action.slot }
         : state;
     case "STORY_DONE":
-      return state.phase === "story" ? { ...state, phase: "label" } : state;
+      return state.phase === "story" ? { ...state, phase: "question" } : state;
+    case "QUESTION_DONE":
+      return state.phase === "question" ? { ...state, phase: "label" } : state;
     case "LABEL":
       return state.phase === "label" && typeof action.text === "string"
         ? { ...state, label: action.text.slice(0, 280) }
@@ -172,6 +176,7 @@ export function isMuseumState(value: unknown): value is MuseumState {
       "write",
       "pick",
       "story",
+      "question",
       "label",
       "approve",
       "gallery",
@@ -228,7 +233,9 @@ export function isMuseumState(value: unknown): value is MuseumState {
     s.exhibits.length
   )
     return false;
-  const selectedPhase = ["story", "label", "approve"].includes(s.phase);
+  const selectedPhase = ["story", "question", "label", "approve"].includes(
+    s.phase,
+  );
   if (selectedPhase !== (s.selected !== null)) return false;
   if (
     s.selected !== null &&
@@ -238,6 +245,27 @@ export function isMuseumState(value: unknown): value is MuseumState {
   if (s.phase === "approve" && s.label.trim().length < 3) return false;
   if (!["label", "approve"].includes(s.phase) && s.label !== "") return false;
   return true;
+}
+
+/** The two seats keep their positions while the highlighted actor changes. */
+export function museumTurn(
+  state: MuseumState,
+): { active: MuseumPlayer; roles: [string, string] } | null {
+  const owner = museumOwner(state);
+  const listener = (1 - owner) as MuseumPlayer;
+  const tasks: Partial<Record<MuseumPhase, [MuseumPlayer, string, string]>> = {
+    write: [state.preparationPlayer, "Пишет три фразы", "Не смотрит на экран"],
+    pick: [listener, "Выбирает фразу", "Ждёт выбора"],
+    story: [owner, "Рассказывает", "Слушает"],
+    question: [listener, "Задаёт вопрос", "Отвечает на вопрос"],
+    label: [listener, "Пишет новую подпись", "Ждёт подпись"],
+    approve: [owner, "Проверяет подпись", "Ждёт подтверждения"],
+  };
+  const task = tasks[state.phase];
+  if (!task) return null;
+  const roles: [string, string] = [task[2], task[2]];
+  roles[task[0]] = task[1];
+  return { active: task[0], roles };
 }
 
 export function museumText(state: MuseumState): string {

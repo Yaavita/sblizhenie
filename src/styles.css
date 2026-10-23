@@ -38,6 +38,45 @@
   max-width: 760px;
   margin: 28px auto 40px;
 }
+.player-turn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.player-turn-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.player-turn-card strong {
+  font-size: 22px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.player-turn-card span {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.player-turn-card.is-active {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: #c7b58c17;
+  box-shadow: inset 3px 0 var(--accent);
+}
+.player-turn-card.is-active span {
+  color: var(--accent);
+}
+.museum-preparation .player-turn {
+  grid-column: 1 / -1;
+}
+.museum-main .player-turn + .step-label {
+  display: block;
+}
 .museum-main.museum-wide,
 .museum-main.museum-review {
   max-width: 1100px;
@@ -70,6 +109,12 @@
 .museum-preparation .museum-form {
   grid-template-columns: minmax(0, 1fr) 320px;
   column-gap: 48px;
+  row-gap: 12px;
+  margin-top: 18px;
+}
+.museum-preparation h1 {
+  font-size: 44px;
+  margin: 10px 0 14px;
 }
 .museum-preparation .museum-field,
 .museum-preparation .museum-note,
@@ -296,7 +341,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  margin: 32px 0;
+  margin: 24px 0;
 }
 .museum-comparison > div {
   padding: 24px;
@@ -307,7 +352,7 @@
   background: #c7b58c09;
 }
 .museum-comparison p {
-  font: 25px/1.4 var(--serif);
+  font: 23px/1.4 var(--serif);
   margin-top: 18px;
   overflow-wrap: anywhere;
 }

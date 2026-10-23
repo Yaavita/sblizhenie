@@ -3,12 +3,18 @@ import { museumExamples, museumQuestions } from "../content/museum";
 import { getNarrator, narratorRemarks } from "../content/narrators";
 import { reducer } from "../engine/engine";
 import type { Session } from "../engine/engine";
-import { captionsReady, museumOwner, museumText } from "../engine/museum";
+import {
+  captionsReady,
+  museumOwner,
+  museumText,
+  museumTurn,
+} from "../engine/museum";
 import type { MuseumAction } from "../engine/museum";
 import { saveSession } from "../hooks/storage";
 import { useNarratorVoice } from "../hooks/voice";
 import { Header } from "./Header";
 import { Portrait } from "./Portrait";
+import { PlayerTurn } from "./PlayerTurn";
 
 export function Museum({
   initial,
@@ -27,7 +33,6 @@ export function Museum({
   const museum = session.museum!;
   const { phase } = museum;
   const owner = museumOwner(museum);
-  const listener = 1 - owner;
   const act = (action: MuseumAction) => dispatch({ type: "MUSEUM", action });
   const host = getNarrator(session.narrator);
   const hostLine = narratorRemarks[host.id][phase === "gallery" ? 6 : 0];
@@ -81,6 +86,14 @@ export function Museum({
   const selectedCaption =
     museum.selected === null ? "" : museum.captions[owner][museum.selected];
   const handoff = phase === "handoff" || (phase === "write" && !privateReady);
+  const turn = !session.paused && !handoff ? museumTurn(museum) : null;
+  const roundSteps: Record<string, string> = {
+    pick: "1 / 5 · Выбор фразы",
+    story: "2 / 5 · Рассказ",
+    question: "3 / 5 · Вопрос",
+    label: "4 / 5 · Новая подпись",
+    approve: "5 / 5 · Проверка",
+  };
 
   return (
     <div className="app-shell museum-shell">
@@ -116,6 +129,7 @@ export function Museum({
       <main
         className={`museum-main entrance ${session.paused ? "" : phase === "gallery" ? "museum-wide" : phase === "intro" ? "museum-intro" : phase === "approve" ? "museum-review" : phase === "write" && !handoff ? "museum-preparation" : ""}`}
       >
+        {turn ? <PlayerTurn {...turn} /> : null}
         {session.paused ? (
           <section className="museum-center">
             <div className="museum-emblem" aria-hidden="true">
@@ -134,30 +148,26 @@ export function Museum({
           <>
             <div className="museum-intro-copy">
               <span className="step-label">Новая выставка · 20–30 минут</span>
-              {title("Первое впечатление — ещё не вся история.")}
+              {title("Какой ты на самом деле?")}
               <p className="lead">
-                У каждого есть витрина. Сегодня заглянем за неё.
+                Шесть коротких историй — по три от каждого.
               </p>
               <ol className="museum-instructions">
                 <li>
-                  <strong>По три подписи о себе.</strong>
+                  <strong>Напиши три фразы о себе.</strong>
+                  <span>Например: «Кажется, я никогда не сомневаюсь».</span>
+                </li>
+                <li>
+                  <strong>Другой выберет фразу. Ты расскажешь историю.</strong>
                   <span>
-                    Запишите, каким вас может видеть другой. Пока по
-                    отдельности.
+                    Объясни на одном примере из жизни, так это или нет.
                   </span>
                 </li>
                 <li>
-                  <strong>Выбор за человеком напротив.</strong>
+                  <strong>После истории появится новая подпись.</strong>
                   <span>
-                    Он выберет впечатление, за которым хочет услышать историю.
-                    Затем поменяетесь ролями.
-                  </span>
-                </li>
-                <li>
-                  <strong>Вместе перепишете подпись.</strong>
-                  <span>
-                    После шести историй откроется ваш общий музей. Совпадения
-                    тоже могут удивить.
+                    Другой напишет, что понял о тебе. Ты проверишь, верно ли
+                    это.
                   </span>
                 </li>
               </ol>
@@ -165,7 +175,7 @@ export function Museum({
                 className="primary"
                 onClick={() => act({ type: "START" })}
               >
-                Подготовить экспонаты →
+                Начать →
               </button>
             </div>
             <aside className="museum-intro-aside">
@@ -200,11 +210,8 @@ export function Museum({
             <div className="museum-emblem" aria-hidden="true">
               {museum.preparationPlayer + 1}
             </div>
-            {title(`Экран игроку ${museum.preparationPlayer + 1}.`)}
-            <p className="lead">
-              Другой пока отворачивается. Сейчас вы подготовите три впечатления
-              о себе.
-            </p>
+            {title(`Игрок ${museum.preparationPlayer + 1}, возьми ноутбук.`)}
+            <p className="lead">Другой пока не смотрит на экран.</p>
             <button
               className="primary"
               onClick={() => {
@@ -217,13 +224,10 @@ export function Museum({
           </section>
         ) : phase === "write" ? (
           <>
-            <span className="step-label">
-              Игрок {museum.preparationPlayer + 1} · За стеклом витрины
-            </span>
-            {title("Каким тебя можно увидеть?")}
+            {title("Напиши три фразы о себе")}
             <p className="lead">
-              Три впечатления о себе, которые мог составить человек напротив.
-              Можно подтвердить каждое историей или показать, что всё сложнее.
+              Например: «Кажется, я всегда уверен в себе». Выбирай фразы, о
+              которых можешь рассказать случай из жизни.
             </p>
             <form
               className="museum-form"
@@ -238,7 +242,7 @@ export function Museum({
               {museum.captions[museum.preparationPlayer].map(
                 (caption, slot) => (
                   <label key={slot} className="museum-field">
-                    <span>Впечатление {slot + 1}</span>
+                    <span>Фраза {slot + 1}</span>
                     <input
                       autoComplete="off"
                       maxLength={180}
@@ -293,20 +297,18 @@ export function Museum({
                   !captionsReady(museum.captions[museum.preparationPlayer])
                 }
               >
-                Запечатать три подписи →
+                Сохранить и скрыть фразы →
               </button>
             </form>
           </>
         ) : phase === "pick" ? (
           <>
             <span className="step-label">
-              Экспонат {museum.exhibits.length + 1} / 6 · Выбирает игрок{" "}
-              {listener + 1}
+              История {museum.exhibits.length + 1} / 6 · {roundSteps[phase]}
             </span>
-            {title("За какой подписью заглянем?")}
+            {title("Выбери одну фразу")}
             <p className="lead">
-              Это впечатления игрока {owner + 1} о себе. Игрок {listener + 1},
-              выбери самое правдоподобное — или то, которое хочется понять.
+              Какую фразу об игроке {owner + 1} хочется обсудить?
             </p>
             <div className="museum-picks">
               {museum.captions[owner].map((caption, slot) => {
@@ -321,7 +323,7 @@ export function Museum({
                     onClick={() => act({ type: "PICK", slot })}
                   >
                     <span className="small-label">
-                      {exhibited ? "Уже в коллекции" : `Витрина 0${slot + 1}`}
+                      {exhibited ? "Уже обсудили" : `Фраза ${slot + 1}`}
                     </span>
                     <strong>{caption}</strong>
                     <span aria-hidden="true">{exhibited ? "✓" : "↗"}</span>
@@ -329,32 +331,19 @@ export function Museum({
                 );
               })}
             </div>
-            <p className="museum-note">
-              Сначала скажи, почему выбрал именно эту подпись. Автор пока
-              слушает.
-            </p>
           </>
         ) : phase === "story" ? (
           <>
             <span className="step-label">
-              Экспонат {museum.exhibits.length + 1} / 6 · Рассказывает игрок{" "}
-              {owner + 1}
+              История {museum.exhibits.length + 1} / 6 · {roundSteps[phase]}
             </span>
-            {title("Что осталось за стеклом?")}
+            {title("Расскажи один случай из жизни")}
             <blockquote className="museum-caption">
               {selectedCaption}
             </blockquote>
             <p className="lead">
-              Вспомни конкретный случай: когда это впечатление оказалось точным,
-              ошибочным или слишком простым. Где ты был, что сделал и чего не
-              было видно со стороны?
+              Эта фраза про тебя? Объясни на одном примере.
             </p>
-            <div className="prompt">
-              <p>
-                Игрок {listener + 1}, выслушай историю и задай один вопрос: «
-                {museumQuestions[Math.floor(museum.exhibits.length / 2)]}»
-              </p>
-            </div>
             <p className="museum-note">
               Время свободное. Записывать рассказ не нужно.
             </p>
@@ -362,22 +351,39 @@ export function Museum({
               className="primary"
               onClick={() => act({ type: "STORY_DONE" })}
             >
-              История рассказана — к новой подписи →
+              Рассказ закончен →
+            </button>
+          </>
+        ) : phase === "question" ? (
+          <>
+            <span className="step-label">
+              История {museum.exhibits.length + 1} / 6 · {roundSteps[phase]}
+            </span>
+            {title("Задай один вопрос об истории")}
+            <blockquote className="museum-caption">
+              {museumQuestions[Math.floor(museum.exhibits.length / 2)]}
+            </blockquote>
+            <p className="lead">
+              Спроси это или задай свой вопрос. Дождись ответа.
+            </p>
+            <button
+              className="primary"
+              onClick={() => act({ type: "QUESTION_DONE" })}
+            >
+              Вопрос обсудили →
             </button>
           </>
         ) : phase === "label" ? (
           <>
             <span className="step-label">
-              Экспонат {museum.exhibits.length + 1} / 6 · Пишет игрок{" "}
-              {listener + 1}
+              История {museum.exhibits.length + 1} / 6 · {roundSteps[phase]}
             </span>
-            {title("Теперь я вижу это так…")}
+            {title("Напиши новую подпись")}
             <blockquote className="museum-caption">
               {selectedCaption}
             </blockquote>
             <p className="lead">
-              Предложи более точную подпись после услышанной истории. Можно
-              сохранить первое впечатление и добавить важную деталь.
+              Что ты теперь понял об игроке {owner + 1}? Одно предложение.
             </p>
             <form
               className="museum-form"
@@ -402,17 +408,16 @@ export function Museum({
                 className="primary"
                 disabled={museum.label.trim().length < 3}
               >
-                Предложить автору истории →
+                Показать подпись →
               </button>
             </form>
           </>
         ) : phase === "approve" ? (
           <>
             <span className="step-label">
-              Экспонат {museum.exhibits.length + 1} / 6 · Подтверждает игрок{" "}
-              {owner + 1}
+              История {museum.exhibits.length + 1} / 6 · {roundSteps[phase]}
             </span>
-            {title("Узнаёшь себя?")}
+            {title("Эта подпись про тебя?")}
             <div className="museum-comparison">
               <div>
                 <span className="small-label">Первое впечатление</span>
@@ -424,21 +429,20 @@ export function Museum({
               </div>
             </div>
             <p className="lead">
-              Игрок {owner + 1}, подходит ли тебе эта формулировка? Если чего-то
-              не хватает, предложи уточнение.
+              Если верно — сохрани. Если нет — скажи, что поправить.
             </p>
             <div className="museum-actions">
               <button
                 className="primary"
                 onClick={() => act({ type: "APPROVE" })}
               >
-                Подпись точная — в музей →
+                Да, сохранить →
               </button>
               <button
                 className="secondary"
                 onClick={() => act({ type: "REVISE" })}
               >
-                Уточнить подпись
+                Поправить подпись
               </button>
             </div>
           </>
