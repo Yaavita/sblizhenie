@@ -3,6 +3,7 @@ import type { GameId, GameMeta, NarratorId, Stage } from "./types";
 import { applyHostStages } from "./hostRules";
 import { storyLots, selectStoryLots } from "./auction";
 import { museumStage } from "./museum";
+import { drawingStages } from "./drawing";
 import { partyStage } from "./party";
 import { isPartyGame } from "./types";
 
@@ -40,11 +41,11 @@ export const games: GameMeta[] = [
   {
     id: "universes",
     title: "Параллельные вселенные",
-    subtitle: "Два рисунка. Одно возможное «мы».",
+    subtitle: "Два рисунка. Пять ведущих со своими планами.",
     description:
-      "Нарисуйте будущее, в котором вам хорошо. Потом впустите в него непредвиденное — и друг друга.",
-    minutes: "25–30",
-    materials: ["Бумага для каждого", "Ручки или карандаши"],
+      "Один рассказывает, другой рисует его мир. Ведущие вмешиваются и спорят, роли меняются сами. В конце молча покажите рисунки и угадайте детали.",
+    minutes: "около 60",
+    materials: ["Лист А4 или А3 каждому", "Ручки или карандаши"],
     tags: ["create", "talk", "romance"],
   },
   {
@@ -714,6 +715,25 @@ function signalMystery(decisions: Record<string, string>): Stage[] {
   ];
 }
 
+/** Saved ten-stage sessions retain their original script. New games use drawingPlan. */
+export function buildLegacyDrawingStages(
+  variant = 0,
+  intimacy = 0,
+  narrator?: NarratorId,
+): Stage[] {
+  const level = intimacyLevel(intimacy);
+  const stages = applyIntimacy(
+    universes(variant, level),
+    "universes",
+    level,
+    variant,
+    {},
+  );
+  return narrator
+    ? applyHostStages(stages, "universes", narrator, variant, level)
+    : stages;
+}
+
 export function buildStages(
   game: GameId,
   variant = 0,
@@ -721,19 +741,19 @@ export function buildStages(
   decisions: Record<string, string> = {},
   narrator?: NarratorId,
 ): Stage[] {
+  if (game === "universes")
+    return drawingStages(narrator ?? "momo", variant, intimacyLevel(intimacy));
   if (isPartyGame(game)) return [partyStage(game)];
   if (game === "museum") return [{ ...museumStage }];
   const level = intimacyLevel(intimacy);
   const baseline =
-    game === "universes"
-      ? universes(variant, level)
-      : game === "cult"
-        ? cult(variant, decisions)
-        : game === "auction"
-          ? auction(variant, level)
-          : variant % 2
-            ? signalMystery(decisions)
-            : letterMystery(decisions);
+    game === "cult"
+      ? cult(variant, decisions)
+      : game === "auction"
+        ? auction(variant, level)
+        : variant % 2
+          ? signalMystery(decisions)
+          : letterMystery(decisions);
   const stages = applyIntimacy(baseline, game, level, variant, decisions);
   return narrator && game !== "auction"
     ? applyHostStages(stages, game, narrator, variant, level)

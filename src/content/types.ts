@@ -27,6 +27,7 @@ export interface Stage {
   kind?:
     | "discussion"
     | "draw"
+    | "drawing"
     | "choice"
     | "secret"
     | "auction"

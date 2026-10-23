@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStages } from "../src/content/games";
+import { buildStages, buildLegacyDrawingStages } from "../src/content/games";
 import {
   selectStoryLots,
   selectBonusQuestion,
@@ -58,7 +58,9 @@ describe("effective openness", () => {
                 (s, i) => serialize(s) !== serialize(levels[b][i]),
               ).length,
               `${game}/${host}/${a}-${b}`,
-            ).toBeGreaterThanOrEqual(game === "secrets" ? 5 : 7);
+            ).toBeGreaterThanOrEqual(
+              game === "universes" ? 4 : game === "secrets" ? 5 : 7,
+            );
           }
         }
   });
@@ -222,10 +224,10 @@ describe("story stakes and logical invariants", () => {
     );
   });
 
-  it("keeps the drawing circumstance concrete and compatible with host constraints at both romantic levels", () => {
+  it("keeps the legacy drawing circumstance concrete and compatible with host constraints at both romantic levels", () => {
     for (const level of [1, 2]) {
       for (const variant of [0, 1]) {
-        const stages = buildStages("universes", variant, level);
+        const stages = buildLegacyDrawingStages(variant, level);
         expect(stages.find((s) => s.id === "u-cost")?.body).toContain(
           "На восемь часов пропала связь",
         );
@@ -236,7 +238,7 @@ describe("story stakes and logical invariants", () => {
           /два рисунка|между мирами/,
         );
         expect(stages.map((s) => [s.id, s.seconds])).toEqual(
-          buildStages("universes", variant, 0).map((s) => [s.id, s.seconds]),
+          buildLegacyDrawingStages(variant, 0).map((s) => [s.id, s.seconds]),
         );
       }
     }

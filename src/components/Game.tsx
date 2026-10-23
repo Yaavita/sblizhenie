@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Dispatch } from "react";
-import { buildStages, games } from "../content/games";
+import { Drawing } from "./Drawing";
+import { buildLegacyDrawingStages, buildStages, games } from "../content/games";
 import {
   getNarrator,
   interruptionPool,
@@ -187,6 +188,7 @@ function Summary({
   );
 }
 export function Game(props: Parameters<typeof ScriptedGame>[0]) {
+  if (props.initial.drawing) return <Drawing {...props} />;
   if (isPartyGame(props.initial.game)) return <PartyGames {...props} />;
   return props.initial.game === "museum" ? (
     <Museum {...props} />
@@ -215,13 +217,19 @@ function ScriptedGame({
   const previousRemaining = useRef(initial.remaining);
   const stages = useMemo(
     () =>
-      buildStages(
-        state.game,
-        state.variant,
-        state.intimacy,
-        state.decisions,
-        state.narrator,
-      ),
+      state.game === "universes"
+        ? buildLegacyDrawingStages(
+            state.variant,
+            state.intimacy,
+            state.narrator,
+          )
+        : buildStages(
+            state.game,
+            state.variant,
+            state.intimacy,
+            state.decisions,
+            state.narrator,
+          ),
     [
       state.game,
       state.variant,
