@@ -14,10 +14,10 @@ import { chime } from "../hooks/sound";
 import { Header } from "./Header";
 import { Portrait } from "./Portrait";
 import { PlayerTurn } from "./PlayerTurn";
+import { DrawingOutline } from "./DrawingOutline";
 
 const clock = (seconds: number) =>
   `${Math.floor(Math.ceil(seconds) / 60)}:${String(Math.ceil(seconds) % 60).padStart(2, "0")}`;
-
 export function Drawing({
   initial,
   sound,
@@ -40,17 +40,16 @@ export function Drawing({
     [session.narrator, session.variant, session.intimacy],
   );
   const plan = useMemo(() => drawingPlan(config), [config]);
-  const feed = drawingFeed(state, plan);
-  const cue = plan[state.cue],
+  const feed = drawingFeed(state, plan),
+    cue = plan[state.cue],
     latest = feed.at(-1);
   const host = getNarrator(config.host),
     theme = drawingTheme(config.host, config.variant);
-  const end = useRef<HTMLDivElement>(null);
-  const follow = useRef(true);
+  const complete = state.phase === "complete";
+  const end = useRef<HTMLDivElement>(null),
+    follow = useRef(true);
   const [unread, setUnread] = useState(false);
   const previous = useRef(latest?.id);
-  const complete = state.phase === "complete";
-
   useEffect(() => {
     saveSession(session);
   }, [session]);
@@ -89,7 +88,6 @@ export function Drawing({
       end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
     else setUnread(true);
   }, [latest?.id, sound]);
-
   useEffect(() => {
     if (initial.drawing?.phase !== "intro")
       end.current?.scrollIntoView({ block: "end" });
@@ -98,7 +96,6 @@ export function Drawing({
     if (complete && follow.current)
       end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [complete]);
-
   function leave() {
     saveSession({ ...session, paused: true });
     onHome();
@@ -115,7 +112,6 @@ export function Drawing({
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-
   return (
     <div className="app-shell drawing-shell">
       <Header
@@ -127,70 +123,43 @@ export function Drawing({
       {state.phase === "intro" ? (
         <main className="drawing-intro entrance">
           <span className="step-label">
-            Около часа · Каждый рисует на своём листе
+            Около часа · Одна тема, два рисунка
           </span>
           <h1>
-            Два мира.
+            Одно место.
             <br />
-            <em>У ведущих свои планы.</em>
+            <em>Совсем разное наполнение.</em>
           </h1>
           <div className="drawing-preparation">
             <section>
-              <strong>01 / Подготовьтесь</strong>
+              <strong>01 / Нарисуйте основу</strong>
               <p>
-                По листу А4 или А3 и ручке каждому. Один рассказывает, второй
-                рисует его мир. Потом роли меняются сами. Всего около 58 минут.
+                По листу А4 или А3 и ручке каждому. Ведущий задаст общую сцену,
+                а пример покажет, как оставить место для вещей.
               </p>
             </section>
             <section>
-              <strong>02 / Оставьте место</strong>
+              <strong>02 / Добавляйте своё</strong>
               <p>
-                Начните с трети листа. Рисуйте небольшими значками. Свой лист до
-                финала не показывайте: в конце будете угадывать, что на нём.
+                Вы оба рисуете всё время. У каждого свои задания: какую вещь
+                добавить, решаете самостоятельно. Затем придут ещё четыре
+                ведущих.
               </p>
             </section>
             <section>
-              <strong>03 / Просто рисуйте</strong>
+              <strong>03 / Угадайте предметы</strong>
               <p>
-                Ведущие вмешаются прямо во время рисования. Поправки — только
-                текущему рисующему. Всё идёт само, подтверждать задания не
-                нужно.
+                До финала не показывайте рисунки и не объясняйте свой выбор.
+                Потом попробуете найти на чужом рисунке ответы на задания.
               </p>
-            </section>
-          </div>
-          <div className="drawing-format">
-            <svg
-              viewBox="0 0 250 145"
-              role="img"
-              aria-label="Пример: вид сверху, открытые комнаты с предметами, вокруг свободное место"
-            >
-              <rect
-                x="8"
-                y="8"
-                width="234"
-                height="129"
-                rx="3"
-                strokeDasharray="5 5"
-              />
-              <path d="M30 32h112v82H30zM86 32v82M30 75h56" />
-              <rect x="43" y="43" width="26" height="17" />
-              <circle cx="58" cy="94" r="8" />
-              <path d="M106 58h19v30h-19zM151 75h40m-7-7 8 7-8 7" />
-              <text x="162" y="111">
-                место для нового
-              </text>
-            </svg>
-            <section>
-              <h2>Как именно рисовать?</h2>
-              <p>{drawingFormat}</p>
-              <p>{drawingFallback}</p>
             </section>
           </div>
           <p className="drawing-rule">
-            <strong>Все штрихи остаются.</strong> {drawingRules}
+            {drawingRules} Всё идёт автоматически: 8 минут на начало, по 11
+            минут на задания каждого нового ведущего и 6 минут на угадывание.
           </p>
           <section className="drawing-host-choice">
-            <span className="small-label">Кто задаёт тему</span>
+            <span className="small-label">Кто задаёт основу</span>
             <div className="drawing-host-buttons">
               {narrators.map((n) => (
                 <button
@@ -209,8 +178,17 @@ export function Drawing({
                 </button>
               ))}
             </div>
-            <h2>{theme.title}</h2>
-            <p>{theme.interest}</p>
+            <div className="drawing-preview">
+              <DrawingOutline kind={theme.outline} />
+              <section>
+                <h2>{theme.title}</h2>
+                <p>{theme.first}</p>
+                <p className="muted">{theme.interest}</p>
+              </section>
+            </div>
+            <p className="drawing-format-note">
+              {drawingFormat} {drawingFallback}
+            </p>
             <div className="drawing-intro-actions">
               <button
                 className="primary"
@@ -243,21 +221,22 @@ export function Drawing({
             <span className="step-label">
               {complete
                 ? "Вечер завершён"
-                : cue.chapter === 3
-                  ? "Показ рисунков"
-                  : `Этап ${cue.chapter + 1} / 3`}
+                : cue.kind === "gallery"
+                  ? "Угадывание"
+                  : cue.chapter === 0
+                    ? "Рисуем основу"
+                    : `Ведущий ${cue.chapter} / 4`}
             </span>
             <h2>{theme.title}</h2>
             <p>
-              {cue.chapter === 3
-                ? "Автор молча показывает. Второй угадывает детали, затем автор объясняет."
-                : `Вы рисуете ${theme.subject}. У каждого свой лист; до финала держите его при себе.`}
+              {cue.kind === "gallery"
+                ? "Автор молча показывает. Второй ищет предметы по заданиям, затем автор объясняет."
+                : "Оба рисуете одну тему. У каждого своя картина и свои предметы."}
             </p>
-            {cue.artist !== undefined && !complete ? (
+            {!complete && cue.kind !== "gallery" ? (
               <div className="drawing-current-roles">
-                <strong>Игрок {cue.artist + 1} рисует</strong>
-                <span>Игрок {2 - cue.artist} рассказывает</span>
-                <p>{cue.story}</p>
+                <strong>Рисуете оба</strong>
+                <span>Задания игрокам — справа</span>
               </div>
             ) : null}
             {!complete ? (
@@ -270,11 +249,9 @@ export function Drawing({
                 <span>
                   {session.paused
                     ? "Пауза"
-                    : cue.kind === "quiet"
-                      ? "Спокойно дорисовываем"
-                      : cue.kind === "gallery"
-                        ? "Время поговорить"
-                        : "Рисуйте по заданию"}
+                    : cue.kind === "gallery"
+                      ? "Ищите предметы"
+                      : "Спокойно рисуйте"}
                 </span>
               </div>
             ) : null}
@@ -294,12 +271,12 @@ export function Drawing({
               </button>
             </div>
             <p className="drawing-sidebar-rule">
-              Не стирайте. Меняйте смысл дорисовкой. Маленький значок, стрелка
-              или подпись тоже подходят.
+              Одна картина на всю игру. Добавляйте вещи в свободное место. Пока
+              не показывайте свой лист друг другу.
             </p>
             <p className="drawing-sidebar-hint">
-              Задания и все поправки — справа. Предыдущие можно прочитать,
-              прокрутив страницу вверх.
+              Все прошлые задания остаются в ленте. Их можно прочитать,
+              прокрутив вверх.
             </p>
             {session.paused && !complete ? (
               <p className="drawing-pause-note" role="status">
@@ -318,135 +295,108 @@ export function Drawing({
                   });
                 }}
               >
-                Новая реплика ↓
+                Новое задание ↓
               </button>
             ) : null}
           </aside>
           <div className="drawing-feed">
             <p className="drawing-feed-note">
-              Один лист на всю игру · Поправки — текущему рисующему · Роли
-              меняются сами
+              Игрок 1 всегда слева · Игрок 2 всегда справа · Новые задания
+              появляются сами
             </p>
             <div role="status" className="sr-only">
               {latest
                 ? `${getNarrator(latest.narrator).name}: ${latest.title}`
                 : ""}
             </div>
-            {feed.map((entry, i) => {
-              const speaker = getNarrator(entry.narrator),
-                first = i === 0 || feed[i - 1].chapter !== entry.chapter;
+            {feed.map((entry) => {
+              const speaker = getNarrator(entry.narrator);
               return (
-                <div key={entry.id}>
-                  {first ? (
-                    <h2 className="drawing-chapter">
-                      {entry.chapter === 3
-                        ? "Покажите друг другу, что получилось"
-                        : `0${entry.chapter + 1} / Большой этап`}
-                    </h2>
-                  ) : null}
-                  <article
-                    className={`drawing-entry ${entry.kind} ${entry.comment ? "drawing-comment" : ""} ${entry.id === latest?.id ? "latest" : ""}`}
-                    data-entry={entry.id}
-                    style={
-                      { "--speaker": speaker.color } as React.CSSProperties
-                    }
-                  >
-                    <div className="drawing-speaker">
-                      <Portrait id={speaker.id} />
-                      <div>
-                        <strong>{speaker.name}</strong>
-                        <span>
-                          {entry.comment
-                            ? `Последнее слово · Рисунок игрока ${(entry.artist ?? 0) + 1}`
-                            : entry.kind === "main"
-                              ? `Основное задание · Рисует игрок ${(entry.artist ?? 0) + 1}`
-                              : entry.kind === "revision"
-                                ? `Поправка · Рисунок игрока ${(entry.artist ?? 0) + 1}`
-                                : entry.kind === "gallery"
-                                  ? "Показ и разговор"
-                                  : `Вмешивается · Рисунок игрока ${(entry.artist ?? 0) + 1}`}
-                        </span>
-                      </div>
+                <article
+                  key={entry.id}
+                  className={`drawing-entry ${entry.kind} ${entry.id === latest?.id ? "latest" : ""}`}
+                  data-entry={entry.id}
+                  style={{ "--speaker": speaker.color } as React.CSSProperties}
+                >
+                  <div className="drawing-speaker">
+                    <Portrait id={speaker.id} />
+                    <div>
+                      <strong>{speaker.name}</strong>
+                      <span>
+                        {entry.kind === "main"
+                          ? "Общая основа для двух картин"
+                          : entry.kind === "gallery"
+                            ? "Покажите, что получилось"
+                            : "Добавляет каждому своё задание"}
+                      </span>
                     </div>
-                    {!entry.comment ? <h3>{entry.title}</h3> : null}
-                    {entry.kind === "gallery" && entry.player !== undefined ? (
-                      <PlayerTurn
-                        active={entry.player}
-                        roles={
-                          entry.player === 0
-                            ? [
-                                "Угадывает детали",
-                                "Молча показывает, потом объясняет",
-                              ]
-                            : [
-                                "Молча показывает, потом объясняет",
-                                "Угадывает детали",
-                              ]
-                        }
-                      />
-                    ) : null}
-                    {entry.kind === "main" && entry.artist !== undefined ? (
-                      <>
-                        <PlayerTurn
-                          active={entry.artist}
-                          roles={
-                            entry.artist === 0
-                              ? [
-                                  "Рисует, слушая рассказ",
-                                  "Рассказывает, не глядя на рисунок",
-                                ]
-                              : [
-                                  "Рассказывает, не глядя на рисунок",
-                                  "Рисует, слушая рассказ",
-                                ]
-                          }
-                        />
-                        <div className="drawing-story">
-                          <strong>Игрок {2 - entry.artist}, расскажи:</strong>
-                          <p>{entry.story}</p>
-                        </div>
-                      </>
-                    ) : null}
-                    <p>{entry.text}</p>
-                    {entry.changed ? (
-                      <span className="drawing-amended">
-                        Правило изменено следующей репликой. Все штрихи
-                        сохраняются.
-                      </span>
-                    ) : null}
-                    {entry.kind === "addition" ||
-                    (entry.kind === "revision" && !entry.comment) ? (
-                      <span className="drawing-time-note">
-                        На эту дорисовку выделено 3 минуты. Рассказчик может
-                        подсказать идею, рисующий решает, как её изобразить.
-                      </span>
-                    ) : null}
-                  </article>
-                </div>
+                  </div>
+                  <h3>{entry.title}</h3>
+                  {entry.kind === "main" ? (
+                    <DrawingOutline kind={theme.outline} />
+                  ) : null}
+                  {entry.kind === "gallery" && entry.player !== undefined ? (
+                    <PlayerTurn
+                      active={entry.player}
+                      roles={
+                        entry.player === 0
+                          ? [
+                              "Угадывает предметы",
+                              "Молча показывает, потом объясняет",
+                            ]
+                          : [
+                              "Молча показывает, потом объясняет",
+                              "Угадывает предметы",
+                            ]
+                      }
+                    />
+                  ) : null}
+                  <p>{entry.text}</p>
+                  {entry.assignments ? (
+                    <div className="drawing-task-pair">
+                      {entry.assignments.map((task, player) => (
+                        <section
+                          key={player}
+                          aria-label={`Задание игрока ${player + 1}`}
+                        >
+                          <strong>Игрок {player + 1}</strong>
+                          <p>{task}</p>
+                        </section>
+                      ))}
+                    </div>
+                  ) : null}
+                  {entry.guesses ? (
+                    <section className="drawing-guesses">
+                      <h4>Какие предметы были ответами на эти задания?</h4>
+                      <ol>
+                        {entry.guesses.map((g) => (
+                          <li key={g.narrator}>
+                            <span>{getNarrator(g.narrator).name}</span>
+                            <p>{g.question}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  ) : null}
+                </article>
               );
             })}
-            {cue.kind === "quiet" && !complete ? (
-              <div className="drawing-quiet">
-                <strong>Теперь спокойно дорисовывайте.</strong>
-                <p>{cue.text}</p>
-              </div>
-            ) : null}
             {complete ? (
               <section className="drawing-result">
                 <span className="step-label">
-                  Результат — два рисунка с общей историей
+                  Одна тема — две разные картины
                 </span>
-                <h2>Такого в начале никто не планировал.</h2>
+                <h2>У каждого оказалось своё.</h2>
                 <p>
-                  Сравните, какими разными получились ваши миры после рассказов
-                  и споров. Выберите по одной любимой переделке.
+                  Какая вещь оказалась самой неожиданной? Дайте картинам
+                  название и сохраните то, что хочется запомнить.
                 </p>
                 <label>
                   Название вашей пары рисунков
                   <input
                     value={state.title}
                     maxLength={80}
-                    placeholder="Например: «Верёвки всё-таки пригодились»"
+                    placeholder="Например: «Наш странный отель»"
                     onChange={(e) =>
                       dispatch({
                         type: "DRAWING",

@@ -15,7 +15,14 @@ import { initialSession, restoreSession } from "../src/engine/engine";
 import type { GameId, NarratorId, Stage } from "../src/content/types";
 const hosts: NarratorId[] = ["noise", "momo", "archivist", "chance", "noir"];
 const serialize = (s: Stage) =>
-  JSON.stringify([s.title, s.body, s.prompt, s.secret, s.lot?.question]);
+  JSON.stringify([
+    s.title,
+    s.body,
+    s.prompt,
+    s.notes,
+    s.secret,
+    s.lot?.question,
+  ]);
 describe("effective openness", () => {
   it("respects the less open preference and rejects invalid restored levels", () => {
     for (let a = 0; a < 3; a++)
@@ -59,7 +66,7 @@ describe("effective openness", () => {
               ).length,
               `${game}/${host}/${a}-${b}`,
             ).toBeGreaterThanOrEqual(
-              game === "universes" ? 4 : game === "secrets" ? 5 : 7,
+              game === "universes" ? 5 : game === "secrets" ? 5 : 7,
             );
           }
         }

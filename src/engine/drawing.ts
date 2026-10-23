@@ -2,7 +2,7 @@ import { getNarrator } from "../content/narrators";
 import { drawingPlan } from "../content/drawing";
 import type { DrawingConfig, DrawingCue } from "../content/drawing";
 export interface DrawingState {
-  version: 1;
+  version: 2;
   phase: "intro" | "running" | "complete";
   cue: number;
   elapsed: number;
@@ -15,7 +15,7 @@ export type DrawingAction =
   | { type: "TITLE"; text: string }
   | { type: "NOTE"; text: string };
 export const initialDrawing = (): DrawingState => ({
-  version: 1,
+  version: 2,
   phase: "intro",
   cue: 0,
   elapsed: 0,
@@ -64,7 +64,7 @@ export function isDrawingState(
   const s = value as DrawingState,
     plan = drawingPlan(config);
   if (
-    s.version !== 1 ||
+    s.version !== 2 ||
     !["intro", "running", "complete"].includes(s.phase) ||
     !Number.isInteger(s.cue) ||
     s.cue < 0 ||
@@ -84,57 +84,33 @@ export function isDrawingState(
     return s.cue === plan.length - 1 && s.elapsed === plan[s.cue].seconds;
   return s.elapsed < plan[s.cue].seconds && s.title === "" && s.note === "";
 }
-export interface DrawingEntry extends Omit<DrawingCue, "seconds" | "retort"> {
-  changed: boolean;
-  comment?: boolean;
-}
-/** Reconstructing the transcript also preserves amendments after reload, without duplicate dialogue. */
+export type DrawingEntry = Omit<DrawingCue, "seconds">;
 export function drawingFeed(
   state: DrawingState,
   plan: DrawingCue[],
 ): DrawingEntry[] {
-  if (state.phase === "intro") return [];
-  const visited = plan.slice(0, state.cue + 1);
-  const changed = new Set(
-    visited.flatMap((c) => (c.supersedes ? [c.supersedes] : [])),
-  );
-  return visited.flatMap((cue, index) => {
-    if (cue.kind === "quiet") return [];
-    const { retort, seconds: _seconds, ...entry } = cue;
-    const rows: DrawingEntry[] = [{ ...entry, changed: changed.has(cue.id) }];
-    if (retort && (index < state.cue || state.elapsed >= retort.after))
-      rows.push({
-        id: `${cue.id}-comment`,
-        chapter: cue.chapter,
-        kind: "revision",
-        narrator: retort.narrator,
-        title: "Последнее слово",
-        text: retort.text,
-        artist: cue.artist,
-        changed: false,
-        comment: true,
-      });
-    return rows;
-  });
+  return state.phase === "intro"
+    ? []
+    : plan
+        .slice(0, state.cue + 1)
+        .map(({ seconds: _seconds, ...entry }) => entry);
 }
 export function drawingText(
   state: DrawingState,
   config: DrawingConfig,
 ): string {
   return [
-    state.title.trim() || "Два рисунка и их приключения",
+    state.title.trim() || "Две картины об одном месте",
     "",
     ...drawingFeed(state, drawingPlan(config)).flatMap((entry) => [
-      `Часть ${entry.chapter + 1} · ${getNarrator(entry.narrator).name} · ${entry.title}${entry.changed ? " (правило изменено, рисунок сохраняется)" : ""}`,
-      ...(entry.artist !== undefined
-        ? [
-            `Рисует игрок ${entry.artist + 1}; рассказывает игрок ${2 - entry.artist}.`,
-          ]
-        : []),
-      ...(entry.kind === "main" && entry.story
-        ? [`Вопрос рассказчику: ${entry.story}`]
-        : []),
+      `${getNarrator(entry.narrator).name} · ${entry.title}`,
       entry.text,
+      ...(entry.assignments?.map(
+        (task, player) => `Игрок ${player + 1}: ${task}`,
+      ) ?? []),
+      ...(entry.guesses?.map(
+        (g) => `Задание ${getNarrator(g.narrator).name}: ${g.question}`,
+      ) ?? []),
       "",
     ]),
     state.note ? `Что запомнилось: ${state.note}` : "",
