@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { games } from "../content/games";
 import { narrators } from "../content/narrators";
 import type { GameId, NarratorId, PreferenceId } from "../content/types";
+import { isPartyGame } from "../content/types";
 export interface SetupResult {
   game: GameId;
   narrator: NarratorId;
@@ -215,26 +216,34 @@ export function Setup({
           <div className="orbit orbit-a" />
           <div className="orbit orbit-b" />
           <span>
-            {game === "museum"
-              ? "◈"
-              : game === "universes"
-                ? "∞"
-                : game === "cult"
-                  ? "✳"
-                  : game === "auction"
-                    ? "100"
-                    : "?"}
+            {game === "pitch"
+              ? "$"
+              : game === "sync"
+                ? "="
+                : game === "museum"
+                  ? "◈"
+                  : game === "universes"
+                    ? "∞"
+                    : game === "cult"
+                      ? "✳"
+                      : game === "auction"
+                        ? "100"
+                        : "?"}
           </span>
           <div className="art-caption">
-            {game === "museum"
-              ? "За каждым впечатлением — история."
-              : game === "universes"
-                ? "Два мира. Одна точка встречи."
-                : game === "cult"
-                  ? "Вначале было ваше слово."
-                  : game === "auction"
-                    ? "У всего ли есть цена?"
-                    : "Правда между строк."}
+            {game === "pitch"
+              ? "Купи абсурд. Продай уверенно."
+              : game === "sync"
+                ? "Совпадём?"
+                : game === "museum"
+                  ? "За каждым впечатлением — история."
+                  : game === "universes"
+                    ? "Два мира. Одна точка встречи."
+                    : game === "cult"
+                      ? "Вначале было ваше слово."
+                      : game === "auction"
+                        ? "У всего ли есть цена?"
+                        : "Правда между строк."}
           </div>
         </div>
         <div>
@@ -244,7 +253,9 @@ export function Setup({
           <div className="game-specs">
             <span>{current.minutes} минут</span>
             <span>Два игрока</span>
-            <span>{levels[intimacy]}</span>
+            <span>
+              {isPartyGame(game) ? "Без личных вопросов" : levels[intimacy]}
+            </span>
           </div>
           <p className="muted">Приготовьте: {current.materials.join(", ")}.</p>
           <button
@@ -268,9 +279,11 @@ export function Setup({
             ↻ Предложить другую игру
           </button>
           <p className="cast-promise">
-            {game === "museum"
-              ? "Ведущий откроет музей. Все шесть историй и подписи к ним — ваши."
-              : "Рассказчики появятся сами. Кто первым заберёт слово — пока не знает никто."}
+            {isPartyGame(game)
+              ? "Кто сейчас играет и что делать — всегда видно на экране."
+              : game === "museum"
+                ? "Ведущий откроет музей. Все шесть историй и подписи к ним — ваши."
+                : "Рассказчики появятся сами. Кто первым заберёт слово — пока не знает никто."}
           </p>
         </div>
       </div>

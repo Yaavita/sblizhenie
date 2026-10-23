@@ -1,4 +1,8 @@
-export type GameId = "universes" | "cult" | "auction" | "secrets" | "museum";
+export type PartyGameId = "pitch" | "sync";
+export type GameId =
+  "universes" | "cult" | "auction" | "secrets" | "museum" | PartyGameId;
+export const isPartyGame = (game: GameId): game is PartyGameId =>
+  game === "pitch" || game === "sync";
 export type NarratorId = "noise" | "momo" | "archivist" | "chance" | "noir";
 export type PreferenceId =
   "talk" | "debate" | "absurd" | "create" | "romance" | "mystery" | "random";
@@ -27,7 +31,8 @@ export interface Stage {
     | "secret"
     | "auction"
     | "verdict"
-    | "museum";
+    | "museum"
+    | "party";
   choices?: { id: string; label: string; effect: string }[];
   secret?: { one: string; two: string };
   lot?: {

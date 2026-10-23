@@ -3,8 +3,30 @@ import type { GameId, GameMeta, NarratorId, Stage } from "./types";
 import { applyHostStages } from "./hostRules";
 import { storyLots, selectStoryLots } from "./auction";
 import { museumStage } from "./museum";
+import { partyStage } from "./party";
+import { isPartyGame } from "./types";
 
 export const games: GameMeta[] = [
+  {
+    id: "pitch",
+    title: "Продай мне это",
+    subtitle: "Товар нелепый. Клиент ещё хуже.",
+    description:
+      "Продай невидимый зонт коту-директору. Выдержи неожиданный вопрос покупателя. Потом поменяйтесь ролями — и посчитайте сделки.",
+    minutes: "10–15",
+    materials: ["Ничего — только ноутбук"],
+    tags: ["absurd", "create", "debate"],
+  },
+  {
+    id: "sync",
+    title: "Один мозг на двоих",
+    subtitle: "Три варианта. Один общий ответ.",
+    description:
+      "Кого берём капитаном: бабушку, кота или тостер? Выбирайте тайно и попробуйте совпасть. Восемь раундов на вашу общую волну.",
+    minutes: "5–10",
+    materials: ["Ничего — только ноутбук"],
+    tags: ["absurd", "talk", "random"],
+  },
   {
     id: "museum",
     title: "Музей неверных впечатлений",
@@ -699,6 +721,7 @@ export function buildStages(
   decisions: Record<string, string> = {},
   narrator?: NarratorId,
 ): Stage[] {
+  if (isPartyGame(game)) return [partyStage(game)];
   if (game === "museum") return [{ ...museumStage }];
   const level = intimacyLevel(intimacy);
   const baseline =

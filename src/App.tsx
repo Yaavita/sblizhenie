@@ -162,7 +162,7 @@ export default function App() {
             ) : null}
             <div className="home-meta">
               <span>2 человека</span>
-              <span>5 игр</span>
+              <span>7 игр</span>
               <span>5 характеров</span>
             </div>
           </div>

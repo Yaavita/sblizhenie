@@ -6,6 +6,9 @@ import { auctionReducer, startRound, isAuctionState } from "./auction";
 import type { AuctionAction, AuctionState } from "./auction";
 import { initialMuseum, isMuseumState, museumReducer } from "./museum";
 import type { MuseumAction, MuseumState } from "./museum";
+import { isPartyGame } from "../content/types";
+import { initialParty, isPartyState, partyReducer } from "./party";
+import type { PartyAction, PartyState } from "./party";
 
 export interface Condition {
   id: string;
@@ -80,6 +83,7 @@ export interface Session {
   log: LogEntry[];
   conditions: Condition[];
   museum?: MuseumState;
+  party?: PartyState;
 }
 export type Action =
   | { type: "TICK"; delta: number }
@@ -90,6 +94,7 @@ export type Action =
   | { type: "CHOOSE"; stageId: string; choiceId: string }
   | { type: "AUCTION"; action: AuctionAction }
   | { type: "MUSEUM"; action: MuseumAction }
+  | { type: "PARTY"; action: PartyAction }
   | { type: "INTERRUPT"; event: Interruption }
   | { type: "END_INTERRUPTION" }
   | { type: "CANCEL_ALL_INTERRUPTION" };
@@ -106,7 +111,15 @@ const narrators: NarratorId[] = [
   "chance",
   "noir",
 ];
-const gameIds: GameId[] = ["universes", "cult", "auction", "secrets", "museum"];
+const gameIds: GameId[] = [
+  "universes",
+  "cult",
+  "auction",
+  "secrets",
+  "museum",
+  "pitch",
+  "sync",
+];
 const duration = (value: number) =>
   Number.isFinite(value) ? Math.max(0, value) : 0;
 function hostConditions(
@@ -178,6 +191,7 @@ export function initialSession(
     auction,
     auctionHistory: [],
     ...(game === "museum" ? { museum: initialMuseum() } : {}),
+    ...(isPartyGame(game) ? { party: initialParty(game) } : {}),
     log: [{ id: 1, type: "stage", text: firstStage.title }],
     conditions: hostConditions(
       dealer,
@@ -331,6 +345,7 @@ export function canInterrupt(state: Session, priority?: number): boolean {
     state.paused ||
     state.game === "auction" ||
     state.game === "museum" ||
+    isPartyGame(state.game) ||
     state.stageKind === "secret" ||
     state.remaining <= 0 ||
     state.totalInterruptions >= INTERRUPTION_LIMITS.total ||
@@ -379,6 +394,12 @@ function endInterruption(state: Session): Session {
 export function reducer(state: Session, action: Action): Session {
   if (state.finished) return state;
   switch (action.type) {
+    case "PARTY": {
+      if (!isPartyGame(state.game) || !state.party || state.paused)
+        return state;
+      const party = partyReducer(state.party, action.action);
+      return party === state.party ? state : { ...state, party };
+    }
     case "MUSEUM":
       if (state.game !== "museum" || !state.museum || state.paused)
         return state;
@@ -643,6 +664,7 @@ export function restoreSession(value: unknown): Session | null {
         "auction",
         "verdict",
         "museum",
+        "party",
       ].includes(s.stageKind)) ||
     (s.currentLotId !== null && typeof s.currentLotId !== "string") ||
     (s.currentLotTitle !== undefined &&
@@ -696,6 +718,21 @@ export function restoreSession(value: unknown): Session | null {
   if (
     s.game !== "museum" &&
     (s.museum !== undefined || s.stageKind === "museum")
+  )
+    return null;
+  if (
+    isPartyGame(s.game) &&
+    (!isPartyState(s.party) ||
+      s.party.game !== s.game ||
+      s.stageKind !== "party" ||
+      s.stageId !== `p-${s.game}` ||
+      s.stageIndex !== 0 ||
+      s.stack.length !== 0)
+  )
+    return null;
+  if (
+    !isPartyGame(s.game) &&
+    (s.party !== undefined || s.stageKind === "party")
   )
     return null;
   if (s.game === "auction" && s.auction === undefined) return null;
