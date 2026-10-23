@@ -110,6 +110,45 @@ describe("shared drawings with independent object choices", () => {
 });
 
 describe("automatic drawing progression and persistence", () => {
+  it("can finish every part early without losing tasks or breaking the saved result", () => {
+    let s = reducer(create(), { type: "DRAWING", action: { type: "START" } });
+    const plan = drawingPlan(config);
+    for (let cue = 0; cue < plan.length; cue++) {
+      s = reducer(s, { type: "TICK", delta: 5 });
+      const advance = {
+        type: "DRAWING" as const,
+        action: { type: "ADVANCE" as const, cue },
+      };
+      const paused = reducer(s, { type: "PAUSE" });
+      expect(reducer(paused, advance)).toBe(paused);
+      s = reducer(s, advance);
+      expect(reducer(s, advance)).toBe(s);
+      expect(restoreSession(JSON.parse(JSON.stringify(s)))).not.toBeNull();
+      if (cue < plan.length - 1) {
+        expect(s.drawing?.cue).toBe(cue + 1);
+        expect(s.remaining).toBe(plan[cue + 1].seconds);
+      }
+    }
+    expect(s.drawing?.phase).toBe("complete");
+    expect(drawingFeed(s.drawing!, plan)).toHaveLength(plan.length);
+  });
+
+  it("ignores an advance intended for a cue that already ended automatically", () => {
+    const initial = create();
+    expect(
+      reducer(initial, {
+        type: "DRAWING",
+        action: { type: "ADVANCE", cue: 0 },
+      }),
+    ).toBe(initial);
+    let s = reducer(initial, { type: "DRAWING", action: { type: "START" } });
+    s = reducer(s, { type: "TICK", delta: 480 });
+    expect(s.drawing?.cue).toBe(1);
+    expect(
+      reducer(s, { type: "DRAWING", action: { type: "ADVANCE", cue: 0 } }),
+    ).toBe(s);
+  });
+
   it("completes the entire evening without a next or confirmation action, preserving pauses at every cue", () => {
     let s = create();
     expect(s.drawing?.phase).toBe("intro");

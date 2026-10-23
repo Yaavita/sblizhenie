@@ -157,6 +157,7 @@ export function Drawing({
           <p className="drawing-rule">
             {drawingRules} Всё идёт автоматически: 8 минут на начало, по 11
             минут на задания каждого нового ведущего и 6 минут на угадывание.
+            Если оба закончили раньше, переходите дальше кнопкой.
           </p>
           <section className="drawing-host-choice">
             <span className="small-label">Кто задаёт основу</span>
@@ -256,6 +257,27 @@ export function Drawing({
               </div>
             ) : null}
             <div className="drawing-sidebar-actions">
+              {!complete && !session.paused ? (
+                <button
+                  className="primary"
+                  onClick={() => {
+                    follow.current = true;
+                    setUnread(false);
+                    dispatch({
+                      type: "DRAWING",
+                      action: { type: "ADVANCE", cue: state.cue },
+                    });
+                  }}
+                >
+                  {cue.kind === "gallery"
+                    ? cue.player === 0
+                      ? "Теперь угадывает игрок 2 →"
+                      : "Посмотреть итог →"
+                    : plan[state.cue + 1]?.kind === "gallery"
+                      ? "Оба закончили — к угадыванию →"
+                      : "Оба закончили — дальше →"}
+                </button>
+              ) : null}
               {!complete ? (
                 <button
                   className="secondary"

@@ -3163,6 +3163,14 @@ em {
   font-size: 15px;
   padding: 12px 18px;
 }
+.drawing-sidebar-actions .primary {
+  max-width: 100%;
+  padding: 14px 18px;
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+}
 .drawing-sidebar-rule {
   border-top: 1px solid var(--line);
   padding-top: 18px;

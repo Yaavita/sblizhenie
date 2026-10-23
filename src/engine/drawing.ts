@@ -12,6 +12,7 @@ export interface DrawingState {
 export type DrawingAction =
   | { type: "START" }
   | { type: "TICK"; delta: number }
+  | { type: "ADVANCE"; cue: number }
   | { type: "TITLE"; text: string }
   | { type: "NOTE"; text: string };
 export const initialDrawing = (): DrawingState => ({
@@ -30,6 +31,13 @@ export function drawingReducer(
   switch (action.type) {
     case "START":
       return state.phase === "intro" ? { ...state, phase: "running" } : state;
+    case "ADVANCE": {
+      if (state.phase !== "running" || action.cue !== state.cue) return state;
+      const plan = drawingPlan(config);
+      return state.cue === plan.length - 1
+        ? { ...state, elapsed: plan[state.cue].seconds, phase: "complete" }
+        : { ...state, cue: state.cue + 1, elapsed: 0 };
+    }
     case "TICK": {
       if (
         state.phase !== "running" ||
