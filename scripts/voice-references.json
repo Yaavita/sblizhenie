@@ -1,0 +1,32 @@
+[
+  {
+    "narrator": "noise",
+    "text": "Ну что, образцовые граждане. Сегодня попробуем без образцовых ответов.",
+    "path": "assets/voice-references/noise.wav",
+    "seconds": 5.46
+  },
+  {
+    "narrator": "momo",
+    "text": "Я буду вести себя прилично. Но это не обещание, а настроение.",
+    "path": "assets/voice-references/momo.wav",
+    "seconds": 5.2
+  },
+  {
+    "narrator": "archivist",
+    "text": "Позвольте. Хороший вопрос ещё не означает хороший ответ.",
+    "path": "assets/voice-references/archivist.wav",
+    "seconds": 5.15
+  },
+  {
+    "narrator": "chance",
+    "text": "Дамы и господа, всё под контролем. Просто контроль сегодня не пришёл.",
+    "path": "assets/voice-references/chance.wav",
+    "seconds": 7.12
+  },
+  {
+    "narrator": "noir",
+    "text": "Мне нравятся хорошие истории. Особенно те, в которых рассказчик старательно пропускает самое интересное.",
+    "path": "assets/voice-references/noir.wav",
+    "seconds": 10.56
+  }
+]

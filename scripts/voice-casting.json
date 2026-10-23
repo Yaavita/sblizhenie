@@ -1,0 +1,171 @@
+{
+  "profiles": [
+    {
+      "id": "noise",
+      "name": "Шум",
+      "seed": 1701,
+      "text": "Ну что, образцовые граждане. Сегодня попробуем без образцовых ответов.\nСтоп! Слишком гладкое будущее подозрительно напоминает рекламу. Добавьте одну неприятность, с которой вы согласны жить, и защитите этот отвратительный компромисс.",
+      "instruct": "A distinctly adult male Russian voice, age thirty-five, with a gritty mid-low baritone and a rough, slightly raspy edge. Native standard Russian pronunciation, crisp consonants, casual conversational rhythm. Deliver the opening with dry sarcastic amusement, as a clever punk teasing friends across a table. On the interruption, attack the first word sharply, then speak with punchy, rebellious confidence and a mocking half-smile. Keep the energy grounded and human, never announcer-like. No shouting throughout, no singing, no music, no artificial voice effects. Clean close microphone recording. Allow clear, meaningful silence between sentences and before punchlines. Never rush from one thought into the next.",
+      "pauses": [
+        {
+          "after": "образцовые граждане",
+          "seconds": 0.85
+        },
+        {
+          "after": "без образцовых ответов",
+          "seconds": 1.6
+        },
+        {
+          "after": "Стоп",
+          "seconds": 0.8
+        },
+        {
+          "after": "напоминает рекламу",
+          "seconds": 1.05
+        },
+        {
+          "after": "согласны жить",
+          "seconds": 0.55
+        }
+      ],
+      "audio": "noise-v1-paced-v1.mp3"
+    },
+    {
+      "id": "momo",
+      "name": "Момо",
+      "seed": 2702,
+      "text": "Я буду вести себя прилично. Но это не обещание, а настроение.\nМинуточку! Вы так убедительно изображаете равнодушие, что я почти поверила. А теперь расскажите, какая маленькая деталь в другом человеке вас предательски выдаёт.",
+      "instruct": "An unmistakably adult female Russian voice, age twenty-eight, with a bright, light mezzo timbre and lively melodic inflections. Native standard Russian, clean diction, natural vowels, a warm smiling tone. The opening is affectionate and playfully conspiratorial; let the final word carry a tiny mischievous lift. The interruption should be quick and delighted, followed by sly curiosity and teasing warmth. Sound like an emotionally expressive adult woman, not a child, not a squeaky cartoon character. Unhurried conversational pace with clear pauses between thoughts. No whispering, singing, music, or added effects. Clean close recording. Allow clear, meaningful silence between sentences and before punchlines. Never rush from one thought into the next.",
+      "pauses": [
+        {
+          "after": "вести себя прилично",
+          "seconds": 0.85
+        },
+        {
+          "after": "а настроение",
+          "seconds": 1.6
+        },
+        {
+          "after": "Минуточку",
+          "seconds": 0.8
+        },
+        {
+          "after": "изображаете равнодушие",
+          "seconds": 0.65
+        },
+        {
+          "after": "почти поверила",
+          "seconds": 1.15
+        },
+        {
+          "after": "А теперь расскажите",
+          "seconds": 0.55
+        }
+      ],
+      "audio": "momo-v1-paced-v1.mp3"
+    },
+    {
+      "id": "archivist",
+      "name": "Архивариус",
+      "seed": 3704,
+      "text": "Позвольте. Хороший вопрос ещё не означает хороший ответ. В ваших мирах исчезла гравитация? Отменяю. Продолжайте рисовать, пока реальность не превратилась в плохо организованный цирк.",
+      "instruct": "An older adult male Russian intellectual with a deep, steady bass-baritone and dry mature texture. Precise educated native Russian articulation at a natural conversational speed. Speak fluidly in full sentences with restrained sarcastic authority, not word by word. Begin thoughtfully, then interrupt firmly with a clipped objection and amused exasperation. Full healthy supported voice, no trembling, no whispering, no singing or music. Allow clear, meaningful silence between sentences and before punchlines. Never rush from one thought into the next.",
+      "take": 2,
+      "pauses": [
+        {
+          "after": "Позвольте",
+          "seconds": 1.0
+        },
+        {
+          "after": "хороший ответ",
+          "seconds": 1.6
+        },
+        {
+          "after": "исчезла гравитация",
+          "seconds": 1.15
+        },
+        {
+          "after": "Отменяю",
+          "seconds": 1.2
+        },
+        {
+          "after": "Продолжайте рисовать",
+          "seconds": 0.65
+        }
+      ],
+      "audio": "archivist-v2-paced-v1.mp3"
+    },
+    {
+      "id": "chance",
+      "name": "Господин Случай",
+      "seed": 4704,
+      "text": "Дамы и господа, всё под контролем. Просто контроль сегодня не пришёл.\nСтоп! В ваших мирах исчезла гравитация! У вас минута, чтобы придумать, что теперь удерживает людей рядом. Верёвки принимаются, чувство долга вызывает вопросы.",
+      "instruct": "An adult male Russian showman, around forty, with a clearly higher, bright ringing tenor and agile theatrical diction. Native standard Russian pronunciation. His sound must contrast strongly with low gravelly male voices: smooth, forward, nimble, and exuberant. Open with an extravagant welcome and a deadpan comic turn at the end. The interruption bursts in with delighted urgency, dramatic changes of pitch, and a sense that he is inventing a spectacular disaster live. Then land the last sentence with absurdly serious comic timing. Spoken performance only, no singing, sustained screaming, crowd noise, music, or effects. Allow clear, meaningful silence between sentences and before punchlines. Never rush from one thought into the next.",
+      "pauses": [
+        {
+          "after": "Дамы и господа",
+          "seconds": 0.65
+        },
+        {
+          "after": "всё под контролем",
+          "seconds": 1.1
+        },
+        {
+          "after": "сегодня не пришёл",
+          "seconds": 1.7
+        },
+        {
+          "after": "Стоп",
+          "seconds": 0.8
+        },
+        {
+          "after": "исчезла гравитация",
+          "seconds": 1.1
+        },
+        {
+          "after": "удерживает людей рядом",
+          "seconds": 1.3
+        },
+        {
+          "after": "Верёвки принимаются",
+          "seconds": 1.05
+        }
+      ],
+      "audio": "chance-v1-paced-v1.mp3"
+    },
+    {
+      "id": "noir",
+      "name": "Мадам Нуар",
+      "seed": 5705,
+      "text": "Мне нравятся хорошие истории. Особенно те, в которых рассказчик старательно пропускает самое интересное.\nПогодите. Вы слишком быстро согласились. Назовите желание, которое прячется за этим удобным ответом. Мне кажется, оно уже устало ждать.",
+      "instruct": "A mature adult female Russian voice, around forty, with a low contralto register, smoky velvet texture, rich dark resonance, and an intimate composed presence. Native standard Russian with elegant clear articulation. Speak at a deliberate relaxed pace, placing small charged pauses before revealing an implication. The opening carries quiet amusement and sophisticated curiosity. The interruption is gentle but decisive, followed by psychologically precise, faintly seductive irony. Keep a full supported speaking voice rather than breathy whispering. Never sound girlish, cute, shrill, sleepy, or melodramatically sultry. No singing, music, reverb, or effects. Clean close recording. Allow clear, meaningful silence between sentences and before punchlines. Never rush from one thought into the next.",
+      "pauses": [
+        {
+          "after": "хорошие истории",
+          "seconds": 1.2
+        },
+        {
+          "after": "самое интересное",
+          "seconds": 1.8
+        },
+        {
+          "after": "Погодите",
+          "seconds": 1.25
+        },
+        {
+          "after": "быстро согласились",
+          "seconds": 1.15
+        },
+        {
+          "after": "удобным ответом",
+          "seconds": 1.4
+        },
+        {
+          "after": "Мне кажется",
+          "seconds": 0.65
+        }
+      ],
+      "audio": "noir-v1-paced-v1.mp3"
+    }
+  ]
+}
