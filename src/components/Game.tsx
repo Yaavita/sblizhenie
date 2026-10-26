@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Dispatch } from "react";
-import { buildStages, games } from "../content/games";
+import { Drawing } from "./Drawing";
+import { buildLegacyDrawingStages, buildStages, games } from "../content/games";
 import {
   getNarrator,
   interruptionPool,
@@ -20,6 +21,9 @@ import { Portrait } from "./Portrait";
 import { PrivateReveal } from "./PrivateReveal";
 import { Auction } from "./Auction";
 import { Conditions } from "./Conditions";
+import { Museum } from "./Museum";
+import { PartyGames } from "./PartyGames";
+import { isPartyGame } from "../content/types";
 export const clockText = (seconds: number) => {
   const rounded = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(rounded / 60)
@@ -183,7 +187,16 @@ function Summary({
     </main>
   );
 }
-export function Game({
+export function Game(props: Parameters<typeof ScriptedGame>[0]) {
+  if (props.initial.drawing) return <Drawing {...props} />;
+  if (isPartyGame(props.initial.game)) return <PartyGames {...props} />;
+  return props.initial.game === "museum" ? (
+    <Museum {...props} />
+  ) : (
+    <ScriptedGame {...props} />
+  );
+}
+function ScriptedGame({
   initial,
   sound,
   onSound,
@@ -204,13 +217,19 @@ export function Game({
   const previousRemaining = useRef(initial.remaining);
   const stages = useMemo(
     () =>
-      buildStages(
-        state.game,
-        state.variant,
-        state.intimacy,
-        state.decisions,
-        state.narrator,
-      ),
+      state.game === "universes"
+        ? buildLegacyDrawingStages(
+            state.variant,
+            state.intimacy,
+            state.narrator,
+          )
+        : buildStages(
+            state.game,
+            state.variant,
+            state.intimacy,
+            state.decisions,
+            state.narrator,
+          ),
     [
       state.game,
       state.variant,

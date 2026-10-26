@@ -7,7 +7,7 @@ import {
   type Interruption,
   type Session,
 } from "../src/engine/engine";
-import { buildStages } from "../src/content/games";
+import { buildLegacyStages as buildStages } from "./legacy";
 import type { Stage } from "../src/content/types";
 import { clearSession, readSaved, saveSession } from "../src/hooks/storage";
 import { plannedAuctionEvent } from "../src/engine/auction";

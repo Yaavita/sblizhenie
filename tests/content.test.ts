@@ -1,12 +1,20 @@
 import { storyLots, selectStoryLots } from "../src/content/auction";
 import { describe, expect, it } from "vitest";
-import { auctionLots, buildStages, games } from "../src/content/games";
+import {
+  auctionLots,
+  buildStages,
+  buildLegacyDrawingStages,
+  games,
+} from "../src/content/games";
 import { applyHostStages, getHostRules } from "../src/content/hostRules";
 import type { NarratorId } from "../src/content/types";
 
 describe("playable scripts", () => {
   it("provides complete sessions in the requested time range with unique stages and lots", () => {
-    for (const game of games)
+    // Museum uses its own interactive progression, covered in museum.test.ts.
+    for (const game of games.filter(
+      (g) => !["universes", "museum", "pitch", "sync"].includes(g.id),
+    ))
       for (let variant = 0; variant < 28; variant++)
         for (const intimacy of [0, 1, 2]) {
           const stages = buildStages(game.id, variant, intimacy, {
@@ -99,8 +107,8 @@ describe("playable scripts", () => {
     expect(buildStages("secrets", 0)[0].title).not.toBe(
       buildStages("secrets", 1)[0].title,
     );
-    expect(buildStages("universes", 0)[1].body).not.toBe(
-      buildStages("universes", 1)[1].body,
+    expect(buildStages("universes", 0)[0].body).not.toBe(
+      buildStages("universes", 1)[0].body,
     );
     expect(buildStages("auction", 0).map((s) => s.lot?.id)).not.toEqual(
       buildStages("auction", 1).map((s) => s.lot?.id),
@@ -189,7 +197,10 @@ describe("fixed main host rules", () => {
   const hosts: NarratorId[] = ["noise", "momo", "archivist", "chance", "noir"];
 
   it("changes actual assignments in at least four stages of every game for every host", () => {
-    for (const game of games.filter((g) => g.id !== "auction")) {
+    for (const game of games.filter(
+      (g) =>
+        !["universes", "auction", "museum", "pitch", "sync"].includes(g.id),
+    )) {
       const base = buildStages(game.id, 3, 2, {});
       const untouched = JSON.stringify(base);
       const signatures = new Set<string>();
@@ -255,8 +266,8 @@ describe("fixed main host rules", () => {
       }
   });
 
-  it("changes the drawing worlds through persistent constraints", () => {
-    const chance = buildStages("universes", 1, 1, {}, "chance");
+  it("preserves persistent constraints for legacy drawing saves", () => {
+    const chance = buildLegacyDrawingStages(1, 1, "chance");
     const law =
       "вещи становятся невидимыми, если ими не пользовались семь дней";
     for (const id of [
@@ -269,7 +280,7 @@ describe("fixed main host rules", () => {
     ]) {
       expect(chance.find((s) => s.id === id)!.body).toContain(law);
     }
-    const archivist = buildStages("universes", 0, 1, {}, "archivist");
+    const archivist = buildLegacyDrawingStages(0, 1, "archivist");
     expect(archivist.find((s) => s.id === "u-home")!.body).toContain("24");
     expect(archivist.find((s) => s.id === "u-bridge")!.body).toContain(
       "не больше двух часов",

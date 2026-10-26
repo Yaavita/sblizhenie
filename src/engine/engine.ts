@@ -1,9 +1,17 @@
+import { drawingPlan, drawingStages } from "../content/drawing";
+import { initialDrawing, drawingReducer, restoreDrawing } from "./drawing";
+import type { DrawingAction, DrawingState } from "./drawing";
 import { intimacyLevel } from "../content/intimacy";
 import type { GameId, NarratorId, Stage } from "../content/types";
 import { getHostRules } from "../content/hostRules";
 import { selectBonusQuestion } from "../content/auction";
 import { auctionReducer, startRound, isAuctionState } from "./auction";
 import type { AuctionAction, AuctionState } from "./auction";
+import { initialMuseum, isMuseumState, museumReducer } from "./museum";
+import type { MuseumAction, MuseumState } from "./museum";
+import { isPartyGame } from "../content/types";
+import { initialParty, isPartyState, partyReducer } from "./party";
+import type { PartyAction, PartyState } from "./party";
 
 export interface Condition {
   id: string;
@@ -77,6 +85,9 @@ export interface Session {
   auctionHistory: AuctionResult[];
   log: LogEntry[];
   conditions: Condition[];
+  museum?: MuseumState;
+  party?: PartyState;
+  drawing?: DrawingState;
 }
 export type Action =
   | { type: "TICK"; delta: number }
@@ -86,6 +97,10 @@ export type Action =
   | { type: "FINISH" }
   | { type: "CHOOSE"; stageId: string; choiceId: string }
   | { type: "AUCTION"; action: AuctionAction }
+  | { type: "MUSEUM"; action: MuseumAction }
+  | { type: "PARTY"; action: PartyAction }
+  | { type: "DRAWING"; action: DrawingAction }
+  | { type: "DRAWING_CONFIG"; narrator: NarratorId; variant: number }
   | { type: "INTERRUPT"; event: Interruption }
   | { type: "END_INTERRUPTION" }
   | { type: "CANCEL_ALL_INTERRUPTION" };
@@ -102,7 +117,15 @@ const narrators: NarratorId[] = [
   "chance",
   "noir",
 ];
-const gameIds: GameId[] = ["universes", "cult", "auction", "secrets"];
+const gameIds: GameId[] = [
+  "universes",
+  "cult",
+  "auction",
+  "secrets",
+  "museum",
+  "pitch",
+  "sync",
+];
 const duration = (value: number) =>
   Number.isFinite(value) ? Math.max(0, value) : 0;
 function hostConditions(
@@ -173,13 +196,27 @@ export function initialSession(
     balances: [100, 100],
     auction,
     auctionHistory: [],
+    ...(game === "universes" && firstStage.kind === "drawing"
+      ? {
+          drawing: initialDrawing({
+            host: narrator,
+            variant,
+            intimacy: intimacyLevel(intimacy),
+          }),
+          remaining: drawingPlan({
+            host: narrator,
+            variant,
+            intimacy: intimacyLevel(intimacy),
+          })[0].seconds,
+        }
+      : {}),
+    ...(game === "museum" ? { museum: initialMuseum() } : {}),
+    ...(isPartyGame(game) ? { party: initialParty(game) } : {}),
     log: [{ id: 1, type: "stage", text: firstStage.title }],
-    conditions: hostConditions(
-      dealer,
-      game,
-      intimacyLevel(intimacy),
-      firstStage.id,
-    ),
+    conditions:
+      firstStage.kind === "drawing"
+        ? []
+        : hostConditions(dealer, game, intimacyLevel(intimacy), firstStage.id),
   };
 }
 /** Synchronise the single auction reducer with persisted session balances/history. */
@@ -325,6 +362,9 @@ export function canInterrupt(state: Session, priority?: number): boolean {
     state.finished ||
     state.paused ||
     state.game === "auction" ||
+    state.game === "museum" ||
+    !!state.drawing ||
+    isPartyGame(state.game) ||
     state.stageKind === "secret" ||
     state.remaining <= 0 ||
     state.totalInterruptions >= INTERRUPTION_LIMITS.total ||
@@ -373,9 +413,68 @@ function endInterruption(state: Session): Session {
 export function reducer(state: Session, action: Action): Session {
   if (state.finished) return state;
   switch (action.type) {
+    case "DRAWING_CONFIG": {
+      if (
+        !state.drawing ||
+        state.drawing.phase !== "intro" ||
+        !narrators.includes(action.narrator) ||
+        !Number.isSafeInteger(action.variant)
+      )
+        return state;
+      return initialSession(
+        "universes",
+        action.narrator,
+        action.variant,
+        state.intimacy,
+        drawingStages(action.narrator, action.variant, state.intimacy)[0],
+      );
+    }
+    case "DRAWING": {
+      if (
+        state.game !== "universes" ||
+        !state.drawing ||
+        (state.paused && state.drawing.phase !== "complete")
+      )
+        return state;
+      const config = {
+        host: state.narrator,
+        variant: state.variant,
+        intimacy: state.intimacy,
+      };
+      const drawing = drawingReducer(state.drawing, action.action, config);
+      if (drawing === state.drawing) return state;
+      const plan = drawingPlan(config, drawing.taskSet),
+        cue = plan[drawing.cue];
+      return {
+        ...state,
+        drawing,
+        stageIndex: cue.chapter,
+        stageId: drawingStages(
+          config.host,
+          config.variant,
+          config.intimacy,
+          drawing.taskSet,
+        )[cue.chapter].id,
+        remaining: cue.seconds - drawing.elapsed,
+        elapsed:
+          plan.slice(0, drawing.cue).reduce((sum, c) => sum + c.seconds, 0) +
+          drawing.elapsed,
+      };
+    }
+    case "PARTY": {
+      if (!isPartyGame(state.game) || !state.party || state.paused)
+        return state;
+      const party = partyReducer(state.party, action.action);
+      return party === state.party ? state : { ...state, party };
+    }
+    case "MUSEUM":
+      if (state.game !== "museum" || !state.museum || state.paused)
+        return state;
+      return { ...state, museum: museumReducer(state.museum, action.action) };
     case "TICK": {
       if (state.paused || !Number.isFinite(action.delta) || action.delta <= 0)
         return state;
+      if (state.drawing) return reducer(state, { type: "DRAWING", action });
       const top = state.stack.at(-1);
       if (top) {
         const remaining = Math.max(0, top.remaining - action.delta);
@@ -421,7 +520,12 @@ export function reducer(state: Session, action: Action): Session {
         return state;
       return withAuction(state, auctionReducer(state.auction, action.action));
     case "NEXT": {
-      if (state.stack.length || action.stage.id === state.stageId) return state;
+      if (
+        state.drawing ||
+        state.stack.length ||
+        action.stage.id === state.stageId
+      )
+        return state;
       const settled = state.auction
         ? withAuction(state, auctionReducer(state.auction, { type: "FINISH" }))
         : state;
@@ -486,6 +590,7 @@ export function reducer(state: Session, action: Action): Session {
       return round ? withAuction(next, round) : next;
     }
     case "FINISH": {
+      if (state.drawing) return state;
       const settled = state.auction
         ? withAuction(state, auctionReducer(state.auction, { type: "FINISH" }))
         : state;
@@ -616,7 +721,7 @@ const safeMoney = (n: unknown) =>
 /** Old auctions used a different economy and cannot be resumed under the new rules. Other games migrate. */
 export function restoreSession(value: unknown): Session | null {
   if (!value || typeof value !== "object") return null;
-  const s = value as Session;
+  let s = value as Session;
   if (
     s.version !== 1 ||
     !gameIds.includes(s.game) ||
@@ -628,10 +733,13 @@ export function restoreSession(value: unknown): Session | null {
       ![
         "discussion",
         "draw",
+        "drawing",
         "choice",
         "secret",
         "auction",
         "verdict",
+        "museum",
+        "party",
       ].includes(s.stageKind)) ||
     (s.currentLotId !== null && typeof s.currentLotId !== "string") ||
     (s.currentLotTitle !== undefined &&
@@ -673,6 +781,71 @@ export function restoreSession(value: unknown): Session | null {
         new Set(s.conditions.map((c) => c.id)).size !== s.conditions.length))
   )
     return null;
+  if (
+    s.game === "museum" &&
+    (!isMuseumState(s.museum) ||
+      s.stageKind !== "museum" ||
+      s.stageId !== "m-exhibition" ||
+      s.stageIndex !== 0 ||
+      s.stack.length !== 0)
+  )
+    return null;
+  if (
+    s.game !== "museum" &&
+    (s.museum !== undefined || s.stageKind === "museum")
+  )
+    return null;
+  if (
+    isPartyGame(s.game) &&
+    (!isPartyState(s.party) ||
+      s.party.game !== s.game ||
+      s.stageKind !== "party" ||
+      s.stageId !== `p-${s.game}` ||
+      s.stageIndex !== 0 ||
+      s.stack.length !== 0)
+  )
+    return null;
+  if (
+    !isPartyGame(s.game) &&
+    (s.party !== undefined || s.stageKind === "party")
+  )
+    return null;
+  if (s.drawing !== undefined) {
+    const config = {
+      host: s.narrator,
+      variant: s.variant,
+      intimacy: s.intimacy,
+    };
+    const drawing = restoreDrawing(s.drawing, config);
+    if (
+      s.game !== "universes" ||
+      s.stageKind !== "drawing" ||
+      !drawing ||
+      s.stack.length ||
+      s.finished
+    )
+      return null;
+    s = { ...s, drawing };
+    const plan = drawingPlan(config, drawing.taskSet),
+      cue = plan[drawing.cue];
+    if (
+      s.stageIndex !== cue.chapter ||
+      s.stageId !==
+        drawingStages(
+          config.host,
+          config.variant,
+          config.intimacy,
+          drawing.taskSet,
+        )[cue.chapter].id ||
+      Math.abs(s.remaining - (cue.seconds - drawing.elapsed)) > 0.001 ||
+      Math.abs(
+        s.elapsed -
+          (plan.slice(0, drawing.cue).reduce((sum, c) => sum + c.seconds, 0) +
+            drawing.elapsed),
+      ) > 0.001
+    )
+      return null;
+  } else if (s.stageKind === "drawing") return null;
   if (s.game === "auction" && s.auction === undefined) return null;
   if (
     s.game !== "auction" &&
@@ -749,9 +922,11 @@ export function restoreSession(value: unknown): Session | null {
     ...s,
     auction: s.auction ?? null,
     currentLotTitle: s.currentLotTitle ?? "",
-    conditions: s.conditions?.length
-      ? s.conditions
-      : hostConditions(s.narrator, s.game, s.intimacy, s.stageId),
+    conditions: s.drawing
+      ? []
+      : s.conditions?.length
+        ? s.conditions
+        : hostConditions(s.narrator, s.game, s.intimacy, s.stageId),
     paused: true,
   };
 }

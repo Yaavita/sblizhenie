@@ -9,7 +9,10 @@ export interface HostRule {
 const stableIndex = (variant: number, length: number) =>
   ((Math.trunc(variant) % length) + length) % length;
 
-const rules: Record<GameId, Record<NarratorId, [string, string, string][]>> = {
+const rules: Record<
+  Exclude<GameId, "museum" | "pitch" | "sync">,
+  Record<NarratorId, [string, string, string][]>
+> = {
   universes: {
     noise: [
       [
@@ -265,6 +268,35 @@ export function getHostRules(
   game: GameId,
   intimacy = 0,
 ): HostRule[] {
+  if (game === "pitch" || game === "sync")
+    return [
+      {
+        id: `${game}-turns`,
+        title: "По очереди",
+        text: "На каждом экране выделен игрок, который сейчас действует. Задания выполняются по одному.",
+      },
+      {
+        id: `${game}-score`,
+        title: "Итоги",
+        text:
+          game === "sync"
+            ? "За каждый одинаковый ответ — один общий балл. Всего восемь раундов."
+            : "У каждого три продажи. Первые две дают по баллу, последняя — два. Решает покупатель.",
+      },
+    ];
+  if (game === "museum")
+    return [
+      {
+        id: "museum-stories",
+        title: "История за впечатлением",
+        text: "Каждый готовит три подписи о себе. Другой выбирает, о какой услышать историю. Рассказывайте по очереди.",
+      },
+      {
+        id: "museum-captions",
+        title: "Подпись принадлежит автору",
+        text: "Слушающий предлагает более точную подпись. Автор истории подтверждает её или просит уточнить. Все шесть подписей останутся в вашей выставке.",
+      },
+    ];
   return rules[game][narrator].map(([id, title, text]) => ({
     id: `${game}-${narrator}-${id}`,
     title,

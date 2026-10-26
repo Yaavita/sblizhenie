@@ -2,16 +2,50 @@ import { applyIntimacy, intimacyLevel } from "./intimacy";
 import type { GameId, GameMeta, NarratorId, Stage } from "./types";
 import { applyHostStages } from "./hostRules";
 import { storyLots, selectStoryLots } from "./auction";
+import { museumStage } from "./museum";
+import { drawingStages } from "./drawing";
+import { partyStage } from "./party";
+import { isPartyGame } from "./types";
 
 export const games: GameMeta[] = [
   {
+    id: "pitch",
+    title: "Продай мне это",
+    subtitle: "Товар нелепый. Клиент ещё хуже.",
+    description:
+      "Продай невидимый зонт коту-директору. Выдержи неожиданный вопрос покупателя. Потом поменяйтесь ролями — и посчитайте сделки.",
+    minutes: "10–15",
+    materials: ["Ничего — только ноутбук"],
+    tags: ["absurd", "create", "debate"],
+  },
+  {
+    id: "sync",
+    title: "Один мозг на двоих",
+    subtitle: "Три варианта. Один общий ответ.",
+    description:
+      "Кого берём капитаном: бабушку, кота или тостер? Выбирайте тайно и попробуйте совпасть. Восемь раундов на вашу общую волну.",
+    minutes: "5–10",
+    materials: ["Ничего — только ноутбук"],
+    tags: ["absurd", "talk", "random"],
+  },
+  {
+    id: "museum",
+    title: "Музей неверных впечатлений",
+    subtitle: "Первое впечатление — ещё не вся история.",
+    description:
+      "Каким вас видят — и что остаётся за кадром? Выберите чужое впечатление, услышьте историю за ним и откройте выставку из шести новых подписей.",
+    minutes: "20–30",
+    materials: ["Любопытство к человеку напротив"],
+    tags: ["talk", "create", "romance"],
+  },
+  {
     id: "universes",
     title: "Параллельные вселенные",
-    subtitle: "Два рисунка. Одно возможное «мы».",
+    subtitle: "Два рисунка. Пять ведущих со своими планами.",
     description:
-      "Нарисуйте будущее, в котором вам хорошо. Потом впустите в него непредвиденное — и друг друга.",
-    minutes: "25–30",
-    materials: ["Бумага для каждого", "Ручки или карандаши"],
+      "Одна сцена, два рисунка. Ведущие добавляют каждому свои задания, а в конце вы угадываете, какие предметы были ответами.",
+    minutes: "около 60",
+    materials: ["Лист А4 или А3 каждому", "Ручки или карандаши"],
     tags: ["create", "talk", "romance"],
   },
   {
@@ -681,6 +715,25 @@ function signalMystery(decisions: Record<string, string>): Stage[] {
   ];
 }
 
+/** Saved ten-stage sessions retain their original script. New games use drawingPlan. */
+export function buildLegacyDrawingStages(
+  variant = 0,
+  intimacy = 0,
+  narrator?: NarratorId,
+): Stage[] {
+  const level = intimacyLevel(intimacy);
+  const stages = applyIntimacy(
+    universes(variant, level),
+    "universes",
+    level,
+    variant,
+    {},
+  );
+  return narrator
+    ? applyHostStages(stages, "universes", narrator, variant, level)
+    : stages;
+}
+
 export function buildStages(
   game: GameId,
   variant = 0,
@@ -688,17 +741,19 @@ export function buildStages(
   decisions: Record<string, string> = {},
   narrator?: NarratorId,
 ): Stage[] {
+  if (game === "universes")
+    return drawingStages(narrator ?? "momo", variant, intimacyLevel(intimacy));
+  if (isPartyGame(game)) return [partyStage(game)];
+  if (game === "museum") return [{ ...museumStage }];
   const level = intimacyLevel(intimacy);
   const baseline =
-    game === "universes"
-      ? universes(variant, level)
-      : game === "cult"
-        ? cult(variant, decisions)
-        : game === "auction"
-          ? auction(variant, level)
-          : variant % 2
-            ? signalMystery(decisions)
-            : letterMystery(decisions);
+    game === "cult"
+      ? cult(variant, decisions)
+      : game === "auction"
+        ? auction(variant, level)
+        : variant % 2
+          ? signalMystery(decisions)
+          : letterMystery(decisions);
   const stages = applyIntimacy(baseline, game, level, variant, decisions);
   return narrator && game !== "auction"
     ? applyHostStages(stages, game, narrator, variant, level)

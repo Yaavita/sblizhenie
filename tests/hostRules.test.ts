@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStages } from "../src/content/games";
+import { buildLegacyStages as buildStages } from "./legacy";
 import { applyHostStages, getHostRules } from "../src/content/hostRules";
 import type { NarratorId } from "../src/content/types";
 

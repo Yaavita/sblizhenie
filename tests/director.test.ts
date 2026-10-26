@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStages } from "../src/content/games";
+import { buildLegacyStages as buildStages } from "./legacy";
 import { narrators } from "../src/content/narrators";
 import { availableInterruptions } from "../src/engine/director";
 import { initialSession } from "../src/engine/engine";
