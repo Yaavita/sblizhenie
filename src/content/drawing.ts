@@ -1,3 +1,6 @@
+import { selectDrawingTasks } from "./drawingTasks";
+import { legacyDrawingAssignments } from "./drawingTasks/legacy";
+import type { DrawingBaseId, DrawingTaskSet } from "./drawingTasks/types";
 import type { NarratorId, Stage } from "./types";
 
 export const drawingRules =
@@ -23,6 +26,7 @@ export type DrawingOutlineKind =
   | "hotel"
   | "market";
 interface DrawingTheme {
+  id: DrawingBaseId;
   title: string;
   interest: string;
   subject: string;
@@ -32,6 +36,7 @@ interface DrawingTheme {
 const themes: Record<
   NarratorId,
   {
+    ids: DrawingBaseId[];
     titles: string[];
     starts: string[];
     outlines: DrawingOutlineKind[];
@@ -40,6 +45,7 @@ const themes: Record<
   }
 > = {
   momo: {
+    ids: ["momo-island", "momo-house", "momo-city", "momo-garden"],
     outlines: ["island", "house", "city", "garden"],
     titles: [
       "Остров спокойствия",
@@ -58,6 +64,7 @@ const themes: Record<
     subject: "своё место спокойствия",
   },
   noir: {
+    ids: ["noir-house", "noir-theater", "noir-museum", "noir-station"],
     outlines: ["house", "theater", "museum", "station"],
     titles: [
       "Дом несказанного",
@@ -76,6 +83,12 @@ const themes: Record<
     subject: "своё место с секретом",
   },
   archivist: {
+    ids: [
+      "archivist-machine",
+      "archivist-factory",
+      "archivist-control",
+      "archivist-recharge",
+    ],
     outlines: ["machine", "factory", "control", "factory"],
     titles: [
       "Машина обычного дня",
@@ -94,6 +107,7 @@ const themes: Record<
     subject: "своё устройство для жизни",
   },
   noise: {
+    ids: ["noise-city", "noise-hq", "noise-park", "noise-square"],
     outlines: ["city", "house", "garden", "city"],
     titles: [
       "Город без «надо»",
@@ -112,6 +126,7 @@ const themes: Record<
     subject: "своё место свободы",
   },
   chance: {
+    ids: ["chance-station", "chance-bureau", "chance-hotel", "chance-market"],
     outlines: ["station", "bureau", "hotel", "market"],
     titles: [
       "Вокзал невозможных маршрутов",
@@ -134,6 +149,7 @@ export function drawingTheme(host: NarratorId, variant: number): DrawingTheme {
   const t = themes[host],
     choice = index(variant, t.titles.length);
   return {
+    id: t.ids[choice],
     title: t.titles[choice],
     interest: t.interest,
     subject: t.subject,
@@ -141,97 +157,41 @@ export function drawingTheme(host: NarratorId, variant: number): DrawingTheme {
     first: t.starts[choice],
   };
 }
-const personalTasks: Record<NarratorId, [string, string][]> = {
-  momo: [
-    [
-      "Нарисуй предмет, без которого тебе трудно по-настоящему расслабиться.",
-      "Нарисуй вещь, которая может быстро поднять тебе настроение.",
-    ],
-    [
-      "Дорисуй предмет, который взял бы с собой после тяжёлого дня.",
-      "Дорисуй вещь для занятия, за которым ты забываешь о времени.",
-    ],
-    [
-      "Нарисуй угощение, которое приготовил бы для дорогого гостя.",
-      "Нарисуй подарок, который тебе самому хотелось бы получить от гостя.",
-    ],
-  ],
-  noir: [
-    [
-      "Нарисуй вещь из своего увлечения, о котором знают не все.",
-      "Нарисуй личную вещь, которую не любишь давать другим.",
-    ],
-    [
-      "Дорисуй предмет, который хранишь из-за воспоминания.",
-      "Дорисуй вещь, которую предпочёл бы убрать перед приходом гостей.",
-    ],
-    [
-      "Нарисуй предмет, который доверил бы только близкому человеку.",
-      "Нарисуй вещь, с которой чувствуешь себя дома даже в чужом месте.",
-    ],
-  ],
-  archivist: [
-    [
-      "Нарисуй предмет, без которого точно не обойтись в твоём хозяйстве.",
-      "Нарисуй вещь, которая сильно облегчает тебе повседневную жизнь.",
-    ],
-    [
-      "Дорисуй приспособление для дела, которое ты терпеть не можешь делать вручную.",
-      "Дорисуй предмет для своей странной, но полезной привычки.",
-    ],
-    [
-      "Нарисуй две вещи для своего идеального перерыва.",
-      "Нарисуй предмет, который ты всегда стараешься держать под рукой.",
-    ],
-  ],
-  noise: [
-    [
-      "Нарисуй вещь для любимого совершенно бесполезного занятия.",
-      "Нарисуй вещь, которую тебе запрещали или не разрешали иметь в детстве.",
-    ],
-    [
-      "Дорисуй предмет, ради которого ты готов устроить беспорядок.",
-      "Дорисуй вещь, которую тебе нравится использовать не по назначению.",
-    ],
-    [
-      "Нарисуй вещь, которую взял бы на вечеринку с друзьями.",
-      "Нарисуй предмет, который помог бы тебе сбежать со скучного мероприятия.",
-    ],
-  ],
-  chance: [
-    [
-      "Нарисуй вещь, которую обязательно взял бы с собой в поездку сюда.",
-      "Нарисуй вещь, которую притащил бы сюда просто для удовольствия, даже если она бесполезна.",
-    ],
-    [
-      "Нарисуй устройство для невозможной услуги, которой сам хотел бы воспользоваться. Придумай его внешний вид.",
-      "Нарисуй устройство для самой нелепой услуги, за которую ты всё-таки готов заплатить. Придумай его внешний вид.",
-    ],
-    [
-      "Нарисуй вещь, которую твой необычный гость привёз в подарок.",
-      "Нарисуй предмет, ради которого твой необычный гость сюда приехал.",
-    ],
-  ],
-};
 export interface DrawingConfig {
   host: NarratorId;
   variant: number;
   intimacy: number;
 }
-export function drawingAssignments(
-  narrator: NarratorId,
-  variant: number,
-  intimacy: number,
-): [string, string] {
-  const pair = personalTasks[narrator][index(variant, 3)];
-  const extra = [
-    "",
-    " Можно выбрать вещь для общего времени с близким человеком.",
-    " Можно выбрать личную вещь, о которой обычно не рассказываешь. Объяснять её в финале не обязательно.",
-  ][index(intimacy, 3)];
-  return index(variant, 2)
-    ? [pair[1] + extra, pair[0] + extra]
-    : [pair[0] + extra, pair[1] + extra];
+export function drawingTaskSet(config: DrawingConfig): DrawingTaskSet {
+  const theme = drawingTheme(config.host, config.variant);
+  return selectDrawingTasks(
+    theme.id,
+    config.variant,
+    [
+      config.host,
+      ...drawingScenes(config.host, config.variant).map((s) => s.narrator),
+    ],
+    config.intimacy,
+  );
+}
+/** Preserve exact questions for version-2 sessions started before the scene-specific banks. */
+export function legacyDrawingTaskSet(config: DrawingConfig): DrawingTaskSet {
+  const ids = [
+    { narrator: config.host, taskVariant: config.variant },
+    ...drawingScenes(config.host, config.variant),
+  ];
+  return Object.fromEntries(
+    ids.map(({ narrator, taskVariant }) => [
+      narrator,
+      legacyDrawingAssignments(narrator, taskVariant, config.intimacy).map(
+        (text, player) => ({
+          id: `legacy-${narrator}-${player}`,
+          purpose: `legacy-${narrator}-${player}`,
+          text,
+        }),
+      ),
+    ]),
+  ) as DrawingTaskSet;
 }
 function shuffle<T>(items: readonly T[], seed: number): T[] {
   const result = [...items];
@@ -297,8 +257,11 @@ export interface DrawingCue {
   guesses?: DrawingGuess[];
 }
 /** Eight minutes for the scene, four eleven-minute additions, six minutes of guessing. */
-export function drawingPlan(config: DrawingConfig): DrawingCue[] {
-  const { host, variant, intimacy } = config,
+export function drawingPlan(
+  config: DrawingConfig,
+  taskSet = drawingTaskSet(config),
+): DrawingCue[] {
+  const { host, variant } = config,
     theme = drawingTheme(host, variant);
   const plan: DrawingCue[] = [
     {
@@ -308,7 +271,7 @@ export function drawingPlan(config: DrawingConfig): DrawingCue[] {
       narrator: host,
       title: theme.title,
       text: theme.first,
-      assignments: drawingAssignments(host, variant, intimacy),
+      assignments: taskSet[host].map((task) => task.text) as [string, string],
       seconds: 480,
     },
   ];
@@ -320,11 +283,10 @@ export function drawingPlan(config: DrawingConfig): DrawingCue[] {
       narrator: visit.narrator,
       title: visit.title,
       text: visit.text,
-      assignments: drawingAssignments(
-        visit.narrator,
-        visit.taskVariant,
-        intimacy,
-      ),
+      assignments: taskSet[visit.narrator].map((task) => task.text) as [
+        string,
+        string,
+      ],
       seconds: 660,
     }),
   );
@@ -351,8 +313,9 @@ export function drawingStages(
   host: NarratorId,
   variant: number,
   intimacy: number,
+  taskSet?: DrawingTaskSet,
 ): Stage[] {
-  const plan = drawingPlan({ host, variant, intimacy });
+  const plan = drawingPlan({ host, variant, intimacy }, taskSet);
   return plan
     .filter((c) => c.id !== "d-gallery-1")
     .map((c) => ({

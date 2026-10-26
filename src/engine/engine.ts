@@ -1,5 +1,5 @@
 import { drawingPlan, drawingStages } from "../content/drawing";
-import { initialDrawing, drawingReducer, isDrawingState } from "./drawing";
+import { initialDrawing, drawingReducer, restoreDrawing } from "./drawing";
 import type { DrawingAction, DrawingState } from "./drawing";
 import { intimacyLevel } from "../content/intimacy";
 import type { GameId, NarratorId, Stage } from "../content/types";
@@ -198,7 +198,11 @@ export function initialSession(
     auctionHistory: [],
     ...(game === "universes" && firstStage.kind === "drawing"
       ? {
-          drawing: initialDrawing(),
+          drawing: initialDrawing({
+            host: narrator,
+            variant,
+            intimacy: intimacyLevel(intimacy),
+          }),
           remaining: drawingPlan({
             host: narrator,
             variant,
@@ -439,15 +443,18 @@ export function reducer(state: Session, action: Action): Session {
       };
       const drawing = drawingReducer(state.drawing, action.action, config);
       if (drawing === state.drawing) return state;
-      const plan = drawingPlan(config),
+      const plan = drawingPlan(config, drawing.taskSet),
         cue = plan[drawing.cue];
       return {
         ...state,
         drawing,
         stageIndex: cue.chapter,
-        stageId: drawingStages(config.host, config.variant, config.intimacy)[
-          cue.chapter
-        ].id,
+        stageId: drawingStages(
+          config.host,
+          config.variant,
+          config.intimacy,
+          drawing.taskSet,
+        )[cue.chapter].id,
         remaining: cue.seconds - drawing.elapsed,
         elapsed:
           plan.slice(0, drawing.cue).reduce((sum, c) => sum + c.seconds, 0) +
@@ -714,7 +721,7 @@ const safeMoney = (n: unknown) =>
 /** Old auctions used a different economy and cannot be resumed under the new rules. Other games migrate. */
 export function restoreSession(value: unknown): Session | null {
   if (!value || typeof value !== "object") return null;
-  const s = value as Session;
+  let s = value as Session;
   if (
     s.version !== 1 ||
     !gameIds.includes(s.game) ||
@@ -809,26 +816,32 @@ export function restoreSession(value: unknown): Session | null {
       variant: s.variant,
       intimacy: s.intimacy,
     };
+    const drawing = restoreDrawing(s.drawing, config);
     if (
       s.game !== "universes" ||
       s.stageKind !== "drawing" ||
-      !isDrawingState(s.drawing, config) ||
+      !drawing ||
       s.stack.length ||
       s.finished
     )
       return null;
-    const plan = drawingPlan(config),
-      cue = plan[s.drawing.cue];
+    s = { ...s, drawing };
+    const plan = drawingPlan(config, drawing.taskSet),
+      cue = plan[drawing.cue];
     if (
       s.stageIndex !== cue.chapter ||
       s.stageId !==
-        drawingStages(config.host, config.variant, config.intimacy)[cue.chapter]
-          .id ||
-      Math.abs(s.remaining - (cue.seconds - s.drawing.elapsed)) > 0.001 ||
+        drawingStages(
+          config.host,
+          config.variant,
+          config.intimacy,
+          drawing.taskSet,
+        )[cue.chapter].id ||
+      Math.abs(s.remaining - (cue.seconds - drawing.elapsed)) > 0.001 ||
       Math.abs(
         s.elapsed -
-          (plan.slice(0, s.drawing.cue).reduce((sum, c) => sum + c.seconds, 0) +
-            s.drawing.elapsed),
+          (plan.slice(0, drawing.cue).reduce((sum, c) => sum + c.seconds, 0) +
+            drawing.elapsed),
       ) > 0.001
     )
       return null;

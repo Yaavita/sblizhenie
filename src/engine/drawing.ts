@@ -1,8 +1,15 @@
 import { getNarrator } from "../content/narrators";
-import { drawingPlan } from "../content/drawing";
+import {
+  drawingPlan,
+  drawingTaskSet,
+  legacyDrawingTaskSet,
+} from "../content/drawing";
+import { isDrawingTaskSet } from "../content/drawingTasks";
+import type { DrawingTaskSet } from "../content/drawingTasks/types";
 import type { DrawingConfig, DrawingCue } from "../content/drawing";
 export interface DrawingState {
   version: 2;
+  taskSet?: DrawingTaskSet;
   phase: "intro" | "running" | "complete";
   cue: number;
   elapsed: number;
@@ -15,7 +22,8 @@ export type DrawingAction =
   | { type: "ADVANCE"; cue: number }
   | { type: "TITLE"; text: string }
   | { type: "NOTE"; text: string };
-export const initialDrawing = (): DrawingState => ({
+export const initialDrawing = (config?: DrawingConfig): DrawingState => ({
+  ...(config ? { taskSet: drawingTaskSet(config) } : {}),
   version: 2,
   phase: "intro",
   cue: 0,
@@ -30,10 +38,16 @@ export function drawingReducer(
 ): DrawingState {
   switch (action.type) {
     case "START":
-      return state.phase === "intro" ? { ...state, phase: "running" } : state;
+      return state.phase === "intro"
+        ? {
+            ...state,
+            phase: "running",
+            taskSet: state.taskSet ?? drawingTaskSet(config),
+          }
+        : state;
     case "ADVANCE": {
       if (state.phase !== "running" || action.cue !== state.cue) return state;
-      const plan = drawingPlan(config);
+      const plan = drawingPlan(config, state.taskSet);
       return state.cue === plan.length - 1
         ? { ...state, elapsed: plan[state.cue].seconds, phase: "complete" }
         : { ...state, cue: state.cue + 1, elapsed: 0 };
@@ -45,7 +59,7 @@ export function drawingReducer(
         action.delta <= 0
       )
         return state;
-      const plan = drawingPlan(config),
+      const plan = drawingPlan(config, state.taskSet),
         cue = plan[state.cue];
       const elapsed = Math.min(cue.seconds, state.elapsed + action.delta);
       if (elapsed < cue.seconds) return { ...state, elapsed };
@@ -69,8 +83,9 @@ export function isDrawingState(
   config: DrawingConfig,
 ): value is DrawingState {
   if (!value || typeof value !== "object") return false;
-  const s = value as DrawingState,
-    plan = drawingPlan(config);
+  const s = value as DrawingState;
+  if (s.taskSet !== undefined && !isDrawingTaskSet(s.taskSet)) return false;
+  const plan = drawingPlan(config, s.taskSet);
   if (
     s.version !== 2 ||
     !["intro", "running", "complete"].includes(s.phase) ||
@@ -92,6 +107,22 @@ export function isDrawingState(
     return s.cue === plan.length - 1 && s.elapsed === plan[s.cue].seconds;
   return s.elapsed < plan[s.cue].seconds && s.title === "" && s.note === "";
 }
+/** Old v2 saves keep their original questions; unstarted games get the new content. */
+export function restoreDrawing(
+  value: unknown,
+  config: DrawingConfig,
+): DrawingState | null {
+  if (!isDrawingState(value, config)) return null;
+  return value.taskSet
+    ? value
+    : {
+        ...value,
+        taskSet:
+          value.phase === "intro"
+            ? drawingTaskSet(config)
+            : legacyDrawingTaskSet(config),
+      };
+}
 export type DrawingEntry = Omit<DrawingCue, "seconds">;
 export function drawingFeed(
   state: DrawingState,
@@ -110,17 +141,19 @@ export function drawingText(
   return [
     state.title.trim() || "Две картины об одном месте",
     "",
-    ...drawingFeed(state, drawingPlan(config)).flatMap((entry) => [
-      `${getNarrator(entry.narrator).name} · ${entry.title}`,
-      entry.text,
-      ...(entry.assignments?.map(
-        (task, player) => `Игрок ${player + 1}: ${task}`,
-      ) ?? []),
-      ...(entry.guesses?.map(
-        (g) => `Задание ${getNarrator(g.narrator).name}: ${g.question}`,
-      ) ?? []),
-      "",
-    ]),
+    ...drawingFeed(state, drawingPlan(config, state.taskSet)).flatMap(
+      (entry) => [
+        `${getNarrator(entry.narrator).name} · ${entry.title}`,
+        entry.text,
+        ...(entry.assignments?.map(
+          (task, player) => `Игрок ${player + 1}: ${task}`,
+        ) ?? []),
+        ...(entry.guesses?.map(
+          (g) => `Задание ${getNarrator(g.narrator).name}: ${g.question}`,
+        ) ?? []),
+        "",
+      ],
+    ),
     state.note ? `Что запомнилось: ${state.note}` : "",
   ].join("\n");
 }

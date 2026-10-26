@@ -39,7 +39,10 @@ export function Drawing({
     }),
     [session.narrator, session.variant, session.intimacy],
   );
-  const plan = useMemo(() => drawingPlan(config), [config]);
+  const plan = useMemo(
+    () => drawingPlan(config, state.taskSet),
+    [config, state.taskSet],
+  );
   const feed = drawingFeed(state, plan),
     cue = plan[state.cue],
     latest = feed.at(-1);
